@@ -32,8 +32,8 @@ erDiagram
     VARCHAR5 empNo
   }
   salesDetail {
-    VARCHAR8  transNo  PK-FK
-    VARCHAR6  prodCode PK-FK
+    VARCHAR8  transNo  PK, FK
+    VARCHAR6  prodCode PK, FK
     DECIMAL   quantity
   }
   product {
@@ -43,16 +43,16 @@ erDiagram
   }
   priceHist {
     DATE     effDate   PK
-    VARCHAR6 prodCode  PK-FK
+    VARCHAR6 prodCode  PK, FK
     DECIMAL  unitPrice
   }
   user {
-    TEXT      userId        PK
-    VARCHAR50 username
+    TEXT       userId        PK
+    VARCHAR50  username
     VARCHAR100 email
-    VARCHAR12 user_type
-    VARCHAR10 record_status
-    VARCHAR60 stamp
+    VARCHAR12  user_type
+    VARCHAR10  record_status
+    VARCHAR60  stamp
   }
   Module {
     VARCHAR10 moduleCode PK
@@ -69,13 +69,13 @@ erDiagram
     VARCHAR60 stamp
   }
   user_module {
-    TEXT      userId      PK-FK
-    VARCHAR10 moduleCode  PK-FK
+    TEXT      userId      PK, FK
+    VARCHAR10 moduleCode  PK, FK
     INTEGER   rights_value
   }
   UserModule_Rights {
-    TEXT      userId      PK-FK
-    VARCHAR12 rightCode   PK-FK
+    TEXT      userId      PK, FK
+    VARCHAR12 rightCode   PK, FK
     INTEGER   right_value
   }
 
