@@ -7,7 +7,7 @@ import AdminPage from './pages/AdminPage';
 import DeletedCustomersPage from './pages/DeletedCustomersPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import LoginPage from './pages/LoginPage';
-
+import RegisterPage from './pages/RegisterPage';
 
 function ProtectedRoute({ children }) {
   const { currentUser, loading } = useAuth();
@@ -24,6 +24,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/customers" />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="/customers" element={<ProtectedRoute><CustomersPage /></ProtectedRoute>} />
         <Route path="/sales" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
         <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
