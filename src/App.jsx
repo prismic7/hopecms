@@ -6,6 +6,8 @@ import ProductsPage from './pages/ProductsPage';
 import AdminPage from './pages/AdminPage';
 import DeletedCustomersPage from './pages/DeletedCustomersPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
+import LoginPage from './pages/LoginPage';
+
 
 function ProtectedRoute({ children }) {
   const { currentUser, loading } = useAuth();
@@ -21,7 +23,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/customers" />} />
-        <Route path="/login" element={<div>Login - coming soon</div>} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/customers" element={<ProtectedRoute><CustomersPage /></ProtectedRoute>} />
         <Route path="/sales" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
         <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
