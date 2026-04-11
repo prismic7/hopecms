@@ -8,14 +8,17 @@ import DeletedCustomersPage from './pages/DeletedCustomersPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import AppShell from './components/AppShell';
 
 function ProtectedRoute({ children }) {
-  const { currentUser, loading } = useAuth();
-
+  const { currentUser, loading, signOut } = useAuth();
   if (loading) return <div>Loading...</div>;
   if (!currentUser) return <Navigate to="/login" />;
-
-  return children;
+  return (
+    <AppShell currentUser={currentUser} onLogout={signOut}>
+      {children}
+    </AppShell>
+  );
 }
 
 export default function App() {
