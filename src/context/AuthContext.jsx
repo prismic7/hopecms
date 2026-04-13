@@ -11,19 +11,15 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Get the session that already exists (e.g. on page refresh)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        handleSession(session);
-      } else {
-        setLoading(false);
-      }
+      if (session) handleSession(session);
+      else setLoading(false);
     });
 
     // Listen for sign-in / sign-out events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session) {
-          await handleSession(session);
-        } else {
+        if (session) await handleSession(session);
+        else {
           setCurrentUser(null);
           setLoading(false);
         }
@@ -62,13 +58,30 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }
 
+  async function signIn(email, password) {
+    setError(null);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setError(error.message);
+  }
+
+  async function signUp(firstName, lastName, username, email, password) {
+    setError(null);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { firstName, lastName, username } },
+    });
+    if (error) setError(error.message);
+    else setError("Account created! Wait for an admin to activate it before logging in.");
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     setCurrentUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ currentUser, loading, error, setError, signOut }}>
+    <AuthContext.Provider value={{ currentUser, loading, error, setError, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

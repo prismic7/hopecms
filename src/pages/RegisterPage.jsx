@@ -10,13 +10,16 @@
 //   loading             → boolean — auth loading state
 
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
-export default function RegisterPage({
-  onEmailRegister = async () => {},
-  onGoogleRegister = () => {},
-  authError = "",
-  loading = false,
-}) {
+export default function RegisterPage() {
+  const { signUp, loading, error: authError } = useAuth();
+
+  const onEmailRegister = async (firstName, lastName, username, email, password) => {
+    await signUp(firstName, lastName, username, email, password);
+  };
+
+  const onGoogleRegister = () => {};  // Google OAuth wired in Task 3
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",

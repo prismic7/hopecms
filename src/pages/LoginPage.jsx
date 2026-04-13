@@ -10,13 +10,18 @@
 //   loading                       → boolean — auth loading state
 
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
-export default function LoginPage({
-  onEmailLogin = async () => {},
-  onGoogleLogin = () => {},
-  authError = "",
-  loading = false,
-}) {
+export default function LoginPage() {
+  const { signIn, loading, error: authError } = useAuth();
+  const navigate = useNavigate();
+
+  const onEmailLogin = async (email, password) => {
+    await signIn(email, password);
+  };
+
+  const onGoogleLogin = () => {};  // Google OAuth wired in Task 3
   const [email, setEmail]     = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors]   = useState({});
