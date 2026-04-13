@@ -185,6 +185,10 @@ CREATE POLICY umr_read_own ON "UserModule_Rights"
     FOR SELECT TO authenticated
     USING (userId = auth.uid()::text);
 
+CREATE POLICY user_read_own ON "user"
+    FOR SELECT TO authenticated
+    USING (userId = auth.uid()::text);
+
 
 -- =============================================================================
 -- SECTION 4: SEED — MODULES (4 rows)

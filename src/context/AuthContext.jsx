@@ -9,11 +9,13 @@ export function AuthProvider({ children }) {
   const [error, setError]             = useState(null);
 
   useEffect(() => {
+    // Get the session that already exists (e.g. on page refresh)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) handleSession(session);
       else setLoading(false);
     });
 
+    // Listen for sign-in / sign-out events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session) await handleSession(session);
@@ -38,6 +40,7 @@ export function AuthProvider({ children }) {
       .single();
 
     if (dbError || !userRow) {
+      // User row doesn't exist yet (trigger may still be running)
       setError("Account setup incomplete. Please try again.");
       await supabase.auth.signOut();
       setLoading(false);
