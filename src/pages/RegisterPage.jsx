@@ -1,25 +1,35 @@
-// src/pages/RegisterPage.jsx
-// Branch: feat/ui-register-page
-// Issue:  [S1-M2] feat/ui-register-page
-// Role:   M2 – Frontend Developer
-//
-// Props (M4 will wire these up in Sprint 1):
-//   onEmailRegister(firstName, lastName, username, email, password) → async
-//   onGoogleRegister()  → void    — calls supabase.auth.signInWithOAuth()
-//   authError           → string  — error message from AuthContext
-//   loading             → boolean — auth loading state
-
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
 export default function RegisterPage() {
-  const { signUp, loading, error: authError } = useAuth();
+  // ── Fix: use the correct names that AuthContext actually exports ────────────
+  // OLD (broken): const { signUp, signInWithOAuth, loading, error: authError } = useAuth()
+  //   • signUp         → does not exist in AuthContext
+  //   • signInWithOAuth → does not exist; the correct name is signInWithGoogle
+  //   • error          → does not exist; context exports authError directly
+  const {
+    signUpWithEmail,    // email registration  ← was "signUp"       (did not exist)
+    signInWithGoogle,   // Google OAuth        ← was "signInWithOAuth" (did not exist)
+    loading,
+    authError,          // error state         ← was "error: authError" (wrong key)
+    registrationSent,   // true after Supabase sends the confirmation email
+    clearError,
+  } = useAuth();
 
+  // ── Handlers ─────────────────────────────────────────────────────────────
   const onEmailRegister = async (firstName, lastName, username, email, password) => {
-    await signUp(firstName, lastName, username, email, password);
+    clearError();
+    await signUpWithEmail(email, password, { firstName, lastName, username });
   };
 
-  const onGoogleRegister = () => {};  // Google OAuth wired in Task 3
+  // Google OAuth registration is the same flow as Google login —
+  // the provision_new_user() trigger creates a USER/INACTIVE row on first sign-in.
+  const onGoogleRegister = async () => {
+    clearError();
+    await signInWithGoogle();   // ← was signInWithOAuth() — now correct
+  };
+
+  // ── Local form state ──────────────────────────────────────────────────────
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -27,10 +37,10 @@ export default function RegisterPage() {
     email: "",
     password: "",
   });
-  const [errors, setErrors]   = useState({});
+  const [errors,  setErrors]  = useState({});
   const [touched, setTouched] = useState({});
 
-  // ── Validation ──────────────────────────────────────────────────
+  // ── Validation ────────────────────────────────────────────────────────────
   const validate = (f) => {
     const e = {};
     if (!f.firstName.trim())
@@ -65,7 +75,7 @@ export default function RegisterPage() {
     if (touched[field]) setErrors(validate(next));
   };
 
-  // ── Submit ───────────────────────────────────────────────────────
+  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     setTouched({
@@ -81,24 +91,54 @@ export default function RegisterPage() {
     );
   };
 
-  // ── Field config ─────────────────────────────────────────────────
-  const fields = [
-    {
-      row: true,
-      items: [
-        { id: "firstName", label: "First name",  type: "text",     placeholder: "Juan",          autoComplete: "given-name" },
-        { id: "lastName",  label: "Last name",   type: "text",     placeholder: "Dela Cruz",     autoComplete: "family-name" },
-      ],
-    },
-    { id: "username", label: "Username",       type: "text",     placeholder: "juandc",        autoComplete: "username" },
-    { id: "email",    label: "Email address",  type: "email",    placeholder: "you@example.com", autoComplete: "email" },
-    { id: "password", label: "Password",       type: "password", placeholder: "Min. 6 characters", autoComplete: "new-password" },
-  ];
+  // ── Success state — email confirmation sent ───────────────────────────────
+  if (registrationSent) {
+    return (
+      <div style={styles.root}>
+        <aside style={styles.brand}>
+          <div style={styles.brandContent}>
+            <div style={styles.logoMark}>
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.15)" />
+                <path d="M8 16 L16 8 L24 16 L16 24 Z" fill="white" />
+                <circle cx="16" cy="16" r="4" fill="rgba(255,255,255,0.5)" />
+              </svg>
+            </div>
+            <h1 style={styles.brandName}>Hope, Inc.</h1>
+            <p style={styles.brandSub}>Customer Management System</p>
+          </div>
+          <p style={styles.brandFooter}>New Era University · AY 2025–2026</p>
+        </aside>
 
+        <main style={styles.formPanel}>
+          <div style={styles.card}>
+            <div style={styles.successIcon}>✉️</div>
+            <h2 style={styles.cardTitle}>Check your inbox</h2>
+            <p style={{ ...styles.cardSubtitle, marginBottom: "20px" }}>
+              A confirmation link has been sent to <strong>{form.email}</strong>.
+              Click the link to verify your address.
+            </p>
+            <div style={styles.infoBanner} role="status">
+              <span style={styles.infoText}>
+                After confirming your email, a Sales Manager must activate your
+                account before you can sign in.
+              </span>
+            </div>
+            <p style={styles.loginNote}>
+              Already confirmed?{" "}
+              <a href="/login" style={styles.link}>Sign in</a>
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ── Main registration form ─────────────────────────────────────────────────
   return (
     <div style={styles.root}>
 
-      {/* ── Left brand panel ─────────────────────────────────────── */}
+      {/* ── Left brand panel ──────────────────────────────────────────── */}
       <aside style={styles.brand}>
         <div style={styles.brandContent}>
           <div style={styles.logoMark}>
@@ -131,7 +171,7 @@ export default function RegisterPage() {
         <p style={styles.brandFooter}>New Era University · AY 2025–2026</p>
       </aside>
 
-      {/* ── Right form panel ─────────────────────────────────────── */}
+      {/* ── Right form panel ──────────────────────────────────────────── */}
       <main style={styles.formPanel}>
         <div style={styles.card}>
 
@@ -140,7 +180,7 @@ export default function RegisterPage() {
             <p style={styles.cardSubtitle}>Fill in your details to register</p>
           </header>
 
-          {/* Auth-level error (from M4's AuthContext) */}
+          {/* Auth-level error from AuthContext */}
           {authError && (
             <div style={styles.errorBanner} role="alert">
               <span style={styles.errorIcon}>!</span>
@@ -148,12 +188,12 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* ── Form ────────────────────────────────────────────── */}
+          {/* ── Email registration form ──────────────────────────────── */}
           <form onSubmit={handleSubmit} noValidate style={styles.form}>
 
             {/* First name + Last name row */}
             <div style={styles.nameRow}>
-              {["firstName", "lastName"].map((id) => (
+              {(["firstName", "lastName"]).map((id) => (
                 <div key={id} style={{ ...styles.fieldGroup, flex: 1 }}>
                   <label htmlFor={id} style={styles.label}>
                     {id === "firstName" ? "First name" : "Last name"}
@@ -181,8 +221,8 @@ export default function RegisterPage() {
 
             {/* Username, Email, Password */}
             {[
-              { id: "username", label: "Username",      type: "text",     ph: "juandc",           ac: "username" },
-              { id: "email",    label: "Email address", type: "email",    ph: "you@example.com",  ac: "email" },
+              { id: "username", label: "Username",      type: "text",     ph: "juandc",            ac: "username"    },
+              { id: "email",    label: "Email address", type: "email",    ph: "you@example.com",   ac: "email"       },
               { id: "password", label: "Password",      type: "password", ph: "Min. 6 characters", ac: "new-password" },
             ].map(({ id, label, type, ph, ac }) => (
               <div key={id} style={styles.fieldGroup}>
@@ -217,14 +257,14 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          {/* ── OR divider ──────────────────────────────────────── */}
+          {/* ── OR divider ────────────────────────────────────────────── */}
           <div style={styles.orRow}>
             <div style={styles.orLine} />
             <span style={styles.orLabel}>or</span>
             <div style={styles.orLine} />
           </div>
 
-          {/* ── Google register button ───────────────────────────── */}
+          {/* ── Google register button ────────────────────────────────── */}
           <button
             type="button"
             onClick={onGoogleRegister}
@@ -236,7 +276,7 @@ export default function RegisterPage() {
             Register with Google
           </button>
 
-          {/* ── Login link ───────────────────────────────────────── */}
+          {/* ── Login link ────────────────────────────────────────────── */}
           <p style={styles.loginNote}>
             Already have an account?{" "}
             <a href="/login" style={styles.link}>Sign in</a>
@@ -248,7 +288,7 @@ export default function RegisterPage() {
   );
 }
 
-// ── Google icon ───────────────────────────────────────────────────
+// ── Google icon ───────────────────────────────────────────────────────────────
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
@@ -260,7 +300,7 @@ function GoogleIcon() {
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────
+// ── Styles ────────────────────────────────────────────────────────────────────
 const NAVY = "#0f1f3d";
 const BLUE = "#2563eb";
 
@@ -363,6 +403,11 @@ const styles = {
     padding: "40px 36px",
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04)",
   },
+  successIcon: {
+    fontSize: "40px",
+    textAlign: "center",
+    marginBottom: "16px",
+  },
   cardHeader: { marginBottom: "24px" },
   cardTitle: {
     fontSize: "22px",
@@ -370,11 +415,13 @@ const styles = {
     margin: "0 0 6px",
     color: "#0f172a",
     letterSpacing: "-0.3px",
+    textAlign: "center",
   },
   cardSubtitle: {
     fontSize: "14px",
     color: "#64748b",
     margin: 0,
+    textAlign: "center",
   },
   errorBanner: {
     display: "flex",
@@ -402,6 +449,18 @@ const styles = {
   errorText: {
     fontSize: "13px",
     color: "#9f1239",
+    lineHeight: "1.5",
+  },
+  infoBanner: {
+    background: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    borderRadius: "8px",
+    padding: "12px 14px",
+    marginBottom: "20px",
+  },
+  infoText: {
+    fontSize: "13px",
+    color: "#1e40af",
     lineHeight: "1.5",
   },
   form: {
@@ -436,7 +495,7 @@ const styles = {
     background: "white",
   },
   inputError: {
-    borderColor: "#f87171",
+    border: "1px solid #f87171",
     boxShadow: "0 0 0 3px rgba(239,68,68,0.1)",
   },
   fieldError: {
@@ -503,4 +562,4 @@ const styles = {
     textDecoration: "none",
     fontWeight: "500",
   },
-};
+}

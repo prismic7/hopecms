@@ -3,19 +3,20 @@
 // Issue:  [S1-M2] feat/ui-app-shell
 // Role:   M2 – Frontend Developer
 //
+// Fix: removed invalid @media rule from inline styles object.
+//      Responsive sidebar is now handled via a <style> tag inside the component.
+//
 // Props:
 //   currentUser  → object  — from AuthContext (has .username, .user_type)
 //   onLogout()   → void    — calls supabase.auth.signOut() (wired by M4)
 //   children     → node    — page content rendered in the main area
 //
-// NOTE: Sidebar visibility logic (hiding Admin / Deleted Customers
+// NOTE: Sidebar visibility gating (hiding Admin / Deleted Customers
 //       for USER accounts) is handled in Sprint 2 by M4.
-//       For now all links are visible to all authenticated users.
 
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
-// ── Nav items ─────────────────────────────────────────────────────
 const NAV_ITEMS = [
   { label: "Customers",         path: "/customers",         icon: <PeopleIcon /> },
   { label: "Sales",             path: "/sales",             icon: <SalesIcon /> },
@@ -33,10 +34,7 @@ export default function AppShell({ currentUser, onLogout = () => {}, children })
     navigate("/login");
   };
 
-  const displayName = currentUser?.username
-    || currentUser?.email
-    || "User";
-
+  const displayName = currentUser?.username || currentUser?.email || "User";
   const initials = displayName
     .split(" ")
     .map((w) => w[0])
@@ -45,112 +43,149 @@ export default function AppShell({ currentUser, onLogout = () => {}, children })
     .slice(0, 2);
 
   return (
-    <div style={styles.root}>
+    <>
+      {/* ── Responsive styles ─────────────────────────────────────
+          Using a <style> tag because React inline styles do not
+          support @media queries.                                  */}
+      <style>{`
+        .cms-sidebar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          height: 100vh;
+          width: 240px;
+          background: linear-gradient(160deg, #0f1f3d 0%, #162744 100%);
+          display: flex;
+          flex-direction: column;
+          z-index: 50;
+          transform: translateX(-100%);
+          transition: transform 0.25s ease;
+        }
+        .cms-sidebar.open {
+          transform: translateX(0);
+        }
+        .cms-main-area {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          margin-left: 0;
+        }
+        .cms-hamburger {
+          display: flex;
+        }
+        @media (min-width: 768px) {
+          .cms-sidebar {
+            transform: translateX(0) !important;
+          }
+          .cms-main-area {
+            margin-left: 240px;
+          }
+          .cms-hamburger {
+            display: none;
+          }
+        }
+      `}</style>
 
-      {/* ── Mobile overlay ───────────────────────────────────────── */}
-      {sidebarOpen && (
-        <div
-          style={styles.overlay}
-          onClick={() => setSidebarOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      <div style={styles.root}>
 
-      {/* ── Sidebar ──────────────────────────────────────────────── */}
-      <aside style={{
-        ...styles.sidebar,
-        ...(sidebarOpen ? styles.sidebarOpen : {}),
-      }}>
-        {/* Brand */}
-        <div style={styles.brand}>
-          <div style={styles.logoMark}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.15)" />
-              <path d="M6 12 L12 6 L18 12 L12 18 Z" fill="white" />
-              <circle cx="12" cy="12" r="3" fill="rgba(255,255,255,0.5)" />
-            </svg>
-          </div>
-          <div>
-            <p style={styles.brandName}>Hope, Inc.</p>
-            <p style={styles.brandSub}>CMS</p>
-          </div>
-        </div>
+        {/* Mobile overlay */}
+        {sidebarOpen && (
+          <div
+            style={styles.overlay}
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
 
-        {/* Nav links */}
-        <nav style={styles.nav} aria-label="Main navigation">
-          <p style={styles.navSection}>Main Menu</p>
-          {NAV_ITEMS.map(({ label, path, icon }) => (
-            <NavLink
-              key={path}
-              to={path}
-              onClick={() => setSidebarOpen(false)}
-              style={({ isActive }) => ({
-                ...styles.navLink,
-                ...(isActive ? styles.navLinkActive : {}),
-              })}
-            >
-              <span style={styles.navIcon}>{icon}</span>
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+        {/* ── Sidebar ────────────────────────────────────────────── */}
+        <aside className={`cms-sidebar${sidebarOpen ? " open" : ""}`}>
 
-        {/* User card at bottom of sidebar */}
-        <div style={styles.userCard}>
-          <div style={styles.avatar}>{initials}</div>
-          <div style={styles.userInfo}>
-            <p style={styles.userName}>{displayName}</p>
-            <p style={styles.userType}>
-              {currentUser?.user_type || "USER"}
-            </p>
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Main area ────────────────────────────────────────────── */}
-      <div style={styles.mainArea}>
-
-        {/* Navbar */}
-        <header style={styles.navbar}>
-          {/* Hamburger — mobile only */}
-          <button
-            style={styles.hamburger}
-            onClick={() => setSidebarOpen((v) => !v)}
-            aria-label="Toggle menu"
-          >
-            <HamburgerIcon />
-          </button>
-
-          {/* Page title area — left side */}
-          <div style={styles.navLeft}>
-            <span style={styles.navBreadcrumb}>
-              Hope, Inc. CMS
-            </span>
-          </div>
-
-          {/* Right side — user + logout */}
-          <div style={styles.navRight}>
-            <div style={styles.navUser}>
-              <div style={styles.navAvatar}>{initials}</div>
-              <span style={styles.navUserName}>{displayName}</span>
+          {/* Brand */}
+          <div style={styles.brand}>
+            <div style={styles.logoMark}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.15)" />
+                <path d="M6 12 L12 6 L18 12 L12 18 Z" fill="white" />
+                <circle cx="12" cy="12" r="3" fill="rgba(255,255,255,0.5)" />
+              </svg>
             </div>
-            <button
-              onClick={handleLogout}
-              style={styles.logoutBtn}
-              aria-label="Log out"
-            >
-              <LogoutIcon />
-              <span style={styles.logoutLabel}>Logout</span>
-            </button>
+            <div>
+              <p style={styles.brandName}>Hope, Inc.</p>
+              <p style={styles.brandSub}>CMS</p>
+            </div>
           </div>
-        </header>
 
-        {/* Page content */}
-        <main style={styles.content}>
-          {children}
-        </main>
+          {/* Nav links */}
+          <nav style={styles.nav} aria-label="Main navigation">
+            <p style={styles.navSection}>Main Menu</p>
+            {NAV_ITEMS.map(({ label, path, icon }) => (
+              <NavLink
+                key={path}
+                to={path}
+                onClick={() => setSidebarOpen(false)}
+                style={({ isActive }) => ({
+                  ...styles.navLink,
+                  ...(isActive ? styles.navLinkActive : {}),
+                })}
+              >
+                <span style={styles.navIcon}>{icon}</span>
+                {label}
+              </NavLink>
+            ))}
+          </nav>
+
+          {/* User card at bottom */}
+          <div style={styles.userCard}>
+            <div style={styles.avatar}>{initials}</div>
+            <div style={styles.userInfo}>
+              <p style={styles.userName}>{displayName}</p>
+              <p style={styles.userType}>{currentUser?.user_type || "USER"}</p>
+            </div>
+          </div>
+        </aside>
+
+        {/* ── Main area ──────────────────────────────────────────── */}
+        <div className="cms-main-area">
+
+          {/* Top navbar */}
+          <header style={styles.navbar}>
+            <button
+              className="cms-hamburger"
+              style={styles.hamburger}
+              onClick={() => setSidebarOpen((v) => !v)}
+              aria-label="Toggle menu"
+            >
+              <HamburgerIcon />
+            </button>
+
+            <div style={styles.navLeft}>
+              <span style={styles.navBreadcrumb}>Hope, Inc. CMS</span>
+            </div>
+
+            <div style={styles.navRight}>
+              <div style={styles.navUser}>
+                <div style={styles.navAvatar}>{initials}</div>
+                <span style={styles.navUserName}>{displayName}</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                style={styles.logoutBtn}
+                aria-label="Log out"
+              >
+                <LogoutIcon />
+                <span>Logout</span>
+              </button>
+            </div>
+          </header>
+
+          {/* Page content */}
+          <main style={styles.content}>
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -219,11 +254,8 @@ function LogoutIcon() {
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────
-const NAVY      = "#0f1f3d";
-const NAVY_DARK = "#162744";
-const BLUE      = "#2563eb";
-const SIDEBAR_W = "240px";
+// ── Inline styles (no @media rules here) ─────────────────────────
+const BLUE = "#2563eb";
 
 const styles = {
   root: {
@@ -232,38 +264,12 @@ const styles = {
     fontFamily: "'DM Sans', 'Segoe UI', system-ui, sans-serif",
     background: "#f8fafc",
   },
-
-  // Overlay (mobile)
   overlay: {
     position: "fixed",
     inset: 0,
     background: "rgba(0,0,0,0.4)",
     zIndex: 40,
   },
-
-  // Sidebar
-  sidebar: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    height: "100vh",
-    width: SIDEBAR_W,
-    background: `linear-gradient(160deg, ${NAVY} 0%, ${NAVY_DARK} 100%)`,
-    display: "flex",
-    flexDirection: "column",
-    zIndex: 50,
-    transform: "translateX(-100%)",
-    transition: "transform 0.25s ease",
-    // On desktop, always visible via media query equivalent below
-    "@media (min-width: 768px)": {
-      transform: "translateX(0)",
-    },
-  },
-  sidebarOpen: {
-    transform: "translateX(0)",
-  },
-
-  // Brand
   brand: {
     display: "flex",
     alignItems: "center",
@@ -285,8 +291,6 @@ const styles = {
     textTransform: "uppercase",
     letterSpacing: "1px",
   },
-
-  // Nav
   nav: {
     flex: 1,
     padding: "16px 12px",
@@ -324,8 +328,6 @@ const styles = {
     flexShrink: 0,
     opacity: 0.8,
   },
-
-  // User card (bottom of sidebar)
   userCard: {
     display: "flex",
     alignItems: "center",
@@ -361,17 +363,6 @@ const styles = {
     color: "rgba(255,255,255,0.4)",
     margin: 0,
   },
-
-  // Main area
-  mainArea: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    marginLeft: 0,          // on mobile, no margin
-    minWidth: 0,
-  },
-
-  // Navbar (top bar)
   navbar: {
     height: "56px",
     background: "white",
@@ -390,7 +381,6 @@ const styles = {
     cursor: "pointer",
     padding: "6px",
     color: "#374151",
-    display: "flex",
     alignItems: "center",
     borderRadius: "6px",
   },
@@ -440,11 +430,6 @@ const styles = {
     cursor: "pointer",
     fontFamily: "inherit",
   },
-  logoutLabel: {
-    fontSize: "13px",
-  },
-
-  // Page content
   content: {
     flex: 1,
     padding: "24px 20px",
