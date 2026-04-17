@@ -1,0 +1,2 @@
+*.jsx linguist-detectable=true
+*.jsx linguist-language=JavaScript
