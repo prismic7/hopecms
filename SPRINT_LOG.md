@@ -4,7 +4,7 @@
 
 ## Sprint 1 — Weeks 1–2
 **Theme:** Project Setup, CMS Database & Authentication
-**Dates:** [Start Date] to [End Date]
+**Dates:** April 3, 2026 to April 18, 2026
 
 ### Tasks Completed
 | Member | Task | Status |
@@ -31,7 +31,7 @@
 ### Blockers & Resolutions
 | Blocker | Raised By | Resolution |
 |---------|-----------|------------|
-| [Describe any issue that slowed the team down] | [Member] | [How it was resolved] |
+| [Had problems resolving issues with the auth] | [M4] | [It took some but was eventually resolved through trial and error.] |
 
 ### Notes for Sprint 2
 - [Any carry-over items or things the team should know going into Sprint 2]

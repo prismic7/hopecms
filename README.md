@@ -3,7 +3,7 @@
 A 6-week capstone project for BS Computer Science.
 Built with React 18, Vite, Tailwind CSS, and Supabase.
 
-## Team                              ← ADD THIS SECTION
+## Team                              
 
 | Member | Role                          |
 |--------|-------------------------------|
@@ -13,7 +13,7 @@ Built with React 18, Vite, Tailwind CSS, and Supabase.
 | M4     | Rights & Auth Specialist      |
 | M5     | QA / Documentation            |
 
-## Prerequisites                     ← ADD THIS SECTION
+## Prerequisites                     
 
 Before setting up locally, make sure you have:
 - [Node.js](https://nodejs.org/) v18 or higher — run `node -v` to check
@@ -42,7 +42,7 @@ Before setting up locally, make sure you have:
 
 5. Open browser at http://localhost:5173
 
-## Running Tests                     ← ADD THIS SECTION
+## Running Tests                     
 
 npm run test
 
@@ -66,6 +66,6 @@ npm run test
 - At least 1 teammate must approve before merging
 - Delete branch after merging
 
-## Deployment                        ← ADD THIS SECTION
+## Deployment                        
 
 Live URL: [To be added after Sprint 3 deployment]
