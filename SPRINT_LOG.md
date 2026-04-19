@@ -31,7 +31,7 @@
 ### Blockers & Resolutions
 | Blocker | Raised By | Resolution |
 |---------|-----------|------------|
-| [Had problems resolving issues with the auth] | [M4] | [It took some but was eventually resolved through trial and error.] |
+| [Had problems resolving issues with the auth] | [M4] | [It took some time but was eventually resolved through trial and error.] |
 
 ---
 
