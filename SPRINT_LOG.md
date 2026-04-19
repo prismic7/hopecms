@@ -33,9 +33,6 @@
 |---------|-----------|------------|
 | [Had problems resolving issues with the auth] | [M4] | [It took some but was eventually resolved through trial and error.] |
 
-### Notes for Sprint 2
-- [Any carry-over items or things the team should know going into Sprint 2]
-
 ---
 
 ## Sprint 2 — Weeks 3–4
