@@ -1,69 +1,117 @@
-// src/pages/LoginPage.jsx
-// Branch: feat/ui-login-page
-// Issue:  [S1-M2] feat/ui-login-page
-// Role:   M2 – Frontend Developer
-//
-// Props (M4 will wire these up in Sprint 1):
-//   onEmailLogin(email, password) → async   — calls supabase.auth.signIn()
-//   onGoogleLogin()               → void    — calls supabase.auth.signInWithOAuth()
-//   authError                     → string  — error message from AuthContext
-//   loading                       → boolean — auth loading state
+import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
-import { useState } from "react";
+/**
+ * LoginPage
+ *
+ * Reads ?error= from the URL as well as authError from AuthContext so that
+ * errors forwarded by /auth/callback (INACTIVE account, cancelled OAuth,
+ * timeout) are always visible to the user.
+ */
+export default function LoginPage() {
+  const [searchParams] = useSearchParams();
+  const { currentUser, signInWithEmail, signInWithGoogle, loading, authError, clearError } = useAuth();
+  const navigate = useNavigate();
 
-export default function LoginPage({
-  onEmailLogin = async () => {},
-  onGoogleLogin = () => {},
-  authError = "",
-  loading = false,
-}) {
-  const [email, setEmail]     = useState("");
-  const [password, setPassword] = useState("");
-  const [errors, setErrors]   = useState({});
-  const [touched, setTouched] = useState({});
+  // ── Navigate to /customers as soon as currentUser is set ──────────────────
+  // This is what was missing — without this, email login appeared "stuck"
+  // because AuthContext correctly set currentUser but nothing in LoginPage
+  // was watching it to trigger navigation. Google login worked because
+  // AuthCallbackPage has its own navigation logic; email login had none.
+  useEffect(() => {
+    if (currentUser) navigate('/customers', { replace: true })
+  }, [currentUser, navigate])
 
-  // ── Validation ──────────────────────────────────────────────────
+  // ── URL error — set by /auth/callback on every non-success redirect ────────
+  //
+  // Examples of what can arrive here:
+  //   /login?error=Your+account+is+pending+activation…   (INACTIVE guard)
+  //   /login?error=Google+sign-in+was+cancelled…          (user cancelled OAuth)
+  //   /login?error=Sign-in+timed+out.+Please+try+again.   (timeout fallback)
+  //   /login?error=auth_failed                            (generic fallback)
+  const [urlError, setUrlError] = useState(null)
+
+  useEffect(() => {
+    const raw = searchParams.get('error')
+    if (!raw) return
+
+    const decoded = decodeURIComponent(raw)
+    // Translate the generic sentinel values into human-readable messages
+    if (decoded === 'auth_failed') {
+      setUrlError('Sign-in failed. Please try again.')
+    } else {
+      setUrlError(decoded)
+    }
+
+    // Clean the URL so the error doesn't persist across refreshes
+    window.history.replaceState({}, '', '/login')
+  }, [searchParams])
+
+  // The banner shows whichever error is set — URL error takes priority over
+  // AuthContext error so the most specific message is always displayed.
+  const displayError = urlError || authError
+
+  const clearAllErrors = () => {
+    setUrlError(null)
+    clearError()
+  }
+
+  // ── Auth handlers ──────────────────────────────────────────────────────────
+  const onEmailLogin = async (email, password) => {
+    clearAllErrors()
+    await signInWithEmail(email, password)
+  }
+
+  const onGoogleLogin = async () => {
+    clearAllErrors()
+    await signInWithGoogle()
+  }
+
+  // ── Local form state ───────────────────────────────────────────────────────
+  const [email,    setEmail]    = useState("")
+  const [password, setPassword] = useState("")
+  const [errors,   setErrors]   = useState({})
+  const [touched,  setTouched]  = useState({})
+
   const validate = ({ email, password }) => {
-    const e = {};
-    if (!email) {
-      e.email = "Email is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      e.email = "Enter a valid email address.";
-    }
-    if (!password) {
-      e.password = "Password is required.";
-    } else if (password.length < 6) {
-      e.password = "Password must be at least 6 characters.";
-    }
-    return e;
-  };
+    const e = {}
+    if (!email)
+      e.email = "Email is required."
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      e.email = "Enter a valid email address."
+    if (!password)
+      e.password = "Password is required."
+    else if (password.length < 6)
+      e.password = "Password must be at least 6 characters."
+    return e
+  }
 
   const handleBlur = (field) => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-    setErrors(validate({ email, password }));
-  };
+    setTouched(prev => ({ ...prev, [field]: true }))
+    setErrors(validate({ email, password }))
+  }
 
   const handleChange = (field, value) => {
-    const next = { email, password, [field]: value };
-    if (field === "email") setEmail(value);
-    else setPassword(value);
-    if (touched[field]) setErrors(validate(next));
-  };
+    const next = { email, password, [field]: value }
+    if (field === "email") setEmail(value)
+    else setPassword(value)
+    if (touched[field]) setErrors(validate(next))
+  }
 
-  // ── Submit ───────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setTouched({ email: true, password: true });
-    const validationErrors = validate({ email, password });
-    setErrors(validationErrors);
-    if (Object.keys(validationErrors).length > 0) return;
-    await onEmailLogin(email, password);
-  };
+    e.preventDefault()
+    setTouched({ email: true, password: true })
+    const validationErrors = validate({ email, password })
+    setErrors(validationErrors)
+    if (Object.keys(validationErrors).length > 0) return
+    await onEmailLogin(email, password)
+  }
 
   return (
     <div style={styles.root}>
 
-      {/* ── Left brand panel ─────────────────────────────────────── */}
+      {/* ── Left brand panel ──────────────────────────────────────────── */}
       <aside style={styles.brand}>
         <div style={styles.brandContent}>
           <div style={styles.logoMark}>
@@ -82,7 +130,7 @@ export default function LoginPage({
               "Track full sales history",
               "Role-based access control",
               "Secure OAuth 2.0 login",
-            ].map((item) => (
+            ].map(item => (
               <li key={item} style={styles.featureItem}>
                 <span style={styles.bullet} />
                 {item}
@@ -93,7 +141,7 @@ export default function LoginPage({
         <p style={styles.brandFooter}>New Era University · AY 2025–2026</p>
       </aside>
 
-      {/* ── Right form panel ─────────────────────────────────────── */}
+      {/* ── Right form panel ──────────────────────────────────────────── */}
       <main style={styles.formPanel}>
         <div style={styles.card}>
 
@@ -102,15 +150,15 @@ export default function LoginPage({
             <p style={styles.cardSubtitle}>Sign in to your CMS account</p>
           </header>
 
-          {/* Auth-level error (from M4's AuthContext) */}
-          {authError && (
+          {/* Error banner — shown for both URL errors and AuthContext errors */}
+          {displayError && (
             <div style={styles.errorBanner} role="alert">
               <span style={styles.errorIcon}>!</span>
-              <span style={styles.errorText}>{authError}</span>
+              <span style={styles.errorText}>{displayError}</span>
             </div>
           )}
 
-          {/* ── Email / password form ──────────────────────────── */}
+          {/* ── Email / password form ────────────────────────────────── */}
           <form onSubmit={handleSubmit} noValidate style={styles.form}>
 
             <div style={styles.fieldGroup}>
@@ -121,7 +169,7 @@ export default function LoginPage({
                 autoComplete="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => handleChange("email", e.target.value)}
+                onChange={e => handleChange("email", e.target.value)}
                 onBlur={() => handleBlur("email")}
                 style={{
                   ...styles.input,
@@ -143,7 +191,7 @@ export default function LoginPage({
                 autoComplete="current-password"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => handleChange("password", e.target.value)}
+                onChange={e => handleChange("password", e.target.value)}
                 onBlur={() => handleBlur("password")}
                 style={{
                   ...styles.input,
@@ -166,14 +214,14 @@ export default function LoginPage({
             </button>
           </form>
 
-          {/* ── OR divider ──────────────────────────────────────── */}
+          {/* ── OR divider ───────────────────────────────────────────── */}
           <div style={styles.orRow}>
             <div style={styles.orLine} />
             <span style={styles.orLabel}>or</span>
             <div style={styles.orLine} />
           </div>
 
-          {/* ── Google OAuth button ─────────────────────────────── */}
+          {/* ── Google OAuth button ──────────────────────────────────── */}
           <button
             type="button"
             onClick={onGoogleLogin}
@@ -185,7 +233,7 @@ export default function LoginPage({
             Sign in with Google
           </button>
 
-          {/* ── Register link ───────────────────────────────────── */}
+          {/* ── Register link ────────────────────────────────────────── */}
           <p style={styles.registerNote}>
             Don't have an account?{" "}
             <a href="/register" style={styles.link}>Create one</a>
@@ -194,10 +242,10 @@ export default function LoginPage({
         </div>
       </main>
     </div>
-  );
+  )
 }
 
-// ── Google icon ───────────────────────────────────────────────────
+// ── Google icon ───────────────────────────────────────────────────────────────
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
@@ -206,12 +254,12 @@ function GoogleIcon() {
       <path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332Z" fill="#FBBC05"/>
       <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
     </svg>
-  );
+  )
 }
 
-// ── Styles ────────────────────────────────────────────────────────
-const NAVY = "#0f1f3d";
-const BLUE = "#2563eb";
+// ── Styles ────────────────────────────────────────────────────────────────────
+const NAVY = "#0f1f3d"
+const BLUE = "#2563eb"
 
 const styles = {
   root: {
@@ -433,4 +481,4 @@ const styles = {
     textDecoration: "none",
     fontWeight: "500",
   },
-};
+}

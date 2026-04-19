@@ -1,40 +1,114 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './context/AuthContext';
-import CustomersPage from './pages/CustomersPage';
-import SalesPage from './pages/SalesPage';
-import ProductsPage from './pages/ProductsPage';
-import AdminPage from './pages/AdminPage';
-import DeletedCustomersPage from './pages/DeletedCustomersPage';
-import AuthCallbackPage from './pages/AuthCallbackPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import AppShell from './components/AppShell';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
+import { AuthProvider, useAuth } from './context/AuthContext'
 
-function ProtectedRoute({ children }) {
-  const { currentUser, loading, signOut } = useAuth();
-  if (loading) return <div>Loading...</div>;
-  if (!currentUser) return <Navigate to="/login" />;
+// ── Pages that exist after Sprint 1 ──────────────────────────────────────────
+import LoginPage        from './pages/LoginPage'
+import RegisterPage     from './pages/RegisterPage'
+import AuthCallbackPage from './pages/AuthCallbackPage'
+
+// ── M2's App Shell (built in Sprint 1 Issue 7) ───────────────────────────────
+import AppShell from './components/AppShell'
+
+// ── M1's placeholder pages (Sprint 1 Issue 3) ────────────────────────────────
+// These should exist as placeholder files. If Vite reports a missing import,
+// ask M1 to create the file with: export default function XPage() { return <div>X</div> }
+import CustomersPage        from './pages/CustomersPage'
+import SalesPage            from './pages/SalesPage'
+import ProductsPage         from './pages/ProductsPage'
+import AdminPage            from './pages/AdminPage'
+import DeletedCustomersPage from './pages/DeletedCustomersPage'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProtectedRoute — defined INLINE here, not as a separate file.
+//
+// Previous App.jsx tried: import ProtectedRoute from './components/ProtectedRoute'
+// That file doesn't exist yet (it's M1's Sprint 1 deliverable for Issue 3).
+// Defining it here resolves the Vite "Failed to resolve import" crash.
+//
+// When M1 eventually creates src/components/ProtectedRoute.jsx, this inline
+// version can be deleted and the import uncommented.
+// ─────────────────────────────────────────────────────────────────────────────
+function ProtectedRoute() {
+  const { currentUser, loading, signOut } = useAuth()
+
+  // Show a spinner while the login guard is running
+  if (loading) return <LoadingScreen />
+
+  // Not authenticated — redirect to login
+  if (!currentUser) return <Navigate to="/login" replace />
+
+  // Authenticated — render AppShell wrapping the matched child route
   return (
-    <AppShell currentUser={currentUser} onLogout={signOut}>
-      {children}
+    <AppShell
+      currentUser={currentUser}
+      onLogout={signOut}
+    >
+      <Outlet />
     </AppShell>
-  );
+  )
+}
+
+// Simple full-screen loading spinner shown while AuthContext resolves
+function LoadingScreen() {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
+      background: '#f8fafc',
+      gap: '16px',
+      fontFamily: "'DM Sans', 'Segoe UI', system-ui, sans-serif",
+    }}>
+      <style>{`
+        @keyframes app-loading-spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+      `}</style>
+      <div style={{
+        width: '44px',
+        height: '44px',
+        borderRadius: '50%',
+        border: '4px solid #e2e8f0',
+        borderTopColor: '#2563eb',
+        animation: 'app-loading-spin 0.8s linear infinite',
+      }} />
+      <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
+        Loading…
+      </p>
+    </div>
+  )
 }
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/customers" />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/customers" element={<ProtectedRoute><CustomersPage /></ProtectedRoute>} />
-        <Route path="/sales" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
-        <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
-        <Route path="/deleted-customers" element={<ProtectedRoute><DeletedCustomersPage /></ProtectedRoute>} />
-        <Route path="/auth/callback" element={<AuthCallbackPage />} />
-      </Routes>
-    </BrowserRouter>
-  );
+    // AuthProvider MUST wrap BrowserRouter so useAuth() works inside
+    // ProtectedRoute and every other component in the tree
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+
+          {/* ── Public routes ────────────────────────────────────────── */}
+          <Route path="/login"         element={<LoginPage />} />
+          <Route path="/register"      element={<RegisterPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
+          {/* ── Protected routes — all wrapped by AppShell ───────────── */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/customers"         element={<CustomersPage />} />
+            <Route path="/sales"             element={<SalesPage />} />
+            <Route path="/products"          element={<ProductsPage />} />
+            <Route path="/admin"             element={<AdminPage />} />
+            <Route path="/deleted-customers" element={<DeletedCustomersPage />} />
+          </Route>
+
+          {/* ── Catch-all: redirect unknown paths to login ───────────── */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  )
 }

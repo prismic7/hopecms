@@ -179,11 +179,15 @@ CREATE POLICY rights_read_all ON rights
 
 CREATE POLICY user_module_read_own ON user_module
     FOR SELECT TO authenticated
-    USING (userId = auth.uid()::text);
+    USING (userid = auth.uid()::text);
 
 CREATE POLICY umr_read_own ON "UserModule_Rights"
     FOR SELECT TO authenticated
-    USING (userId = auth.uid()::text);
+    USING (userid = auth.uid()::text);
+
+CREATE POLICY user_read_own ON "user"
+    FOR SELECT TO authenticated
+    USING (userid = auth.uid()::text);
 
 
 -- =============================================================================
