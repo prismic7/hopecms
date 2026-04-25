@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getCustomers } from '../services/customerService'
 import { useAuth } from '../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import AddCustomerModal from '../components/AddCustomerModal'
 import EditCustomerModal from '../components/EditCustomerModal'
 import SoftDeleteConfirmDialog from '../components/SoftDeleteConfirmDialog'
@@ -20,6 +21,7 @@ export default function CustomersPage() {
   const [deleteTarget, setDeleteTarget] = useState(null)
 
   const showStamp = userType === 'ADMIN' || userType === 'SUPERADMIN'
+  const navigate = useNavigate()
 
   async function fetchCustomers() {
     setLoading(true)
@@ -170,7 +172,13 @@ export default function CustomersPage() {
                   {filtered.map((c) => (
                     <tr key={c.custno}>
                       <td className="cms-custno">{c.custno}</td>
-                      <td className="cms-custname">{c.custname}</td>
+                      <td
+                        className="cms-custname"
+                        style={{ cursor: 'pointer', color: '#1d4ed8' }}
+                        onClick={() => navigate(`/customers/${c.custno}`)}
+                      >
+                        {c.custname}
+                      </td>
                       <td className="cms-address" title={c.address}>{c.address}</td>
                       <td><span className="payterm-pill">{c.payterm}</span></td>
                       <td>
