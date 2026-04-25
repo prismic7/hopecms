@@ -4,9 +4,9 @@ import { supabase } from '../lib/supabase';
 export async function getSalesByCustomer(custNo) {
   const { data, error } = await supabase
     .from('sales')
-    .select('transNo, salesDate, empNo')
-    .eq('custNo', custNo)
-    .order('salesDate', { ascending: false });
+    .select('transno, salesdate, empno')
+    .eq('custno', custNo)
+    .order('salesdate', { ascending: false });
 
   if (error) throw error;
   return data;
@@ -15,17 +15,17 @@ export async function getSalesByCustomer(custNo) {
 // Get all line items for a specific transaction
 export async function getSalesDetail(transNo) {
   const { data, error } = await supabase
-    .from('salesDetail')
+    .from('salesdetail')
     .select(`
-      transNo,
+      transno,
       quantity,
       product (
-        prodCode,
+        prodcode,
         description,
         unit
       )
     `)
-    .eq('transNo', transNo);
+    .eq('transno', transNo);
 
   if (error) throw error;
   return data;
@@ -36,7 +36,7 @@ export async function getProducts() {
   const { data, error } = await supabase
     .from('product')
     .select('*')
-    .order('prodCode');
+    .order('prodcode', { ascending: true });
 
   if (error) throw error;
   return data;
@@ -45,10 +45,10 @@ export async function getProducts() {
 // Get full price history for a specific product
 export async function getPriceHistory(prodCode) {
   const { data, error } = await supabase
-    .from('priceHist')
-    .select('effDate, unitPrice')
-    .eq('prodCode', prodCode)
-    .order('effDate', { ascending: false });
+    .from('pricehist')
+    .select('effdate, unitprice')
+    .eq('prodcode', prodCode)
+    .order('effdate', { ascending: false });
 
   if (error) throw error;
   return data;
@@ -57,10 +57,10 @@ export async function getPriceHistory(prodCode) {
 // Get the current (latest) price for a specific product
 export async function getCurrentPrice(prodCode) {
   const { data, error } = await supabase
-    .from('priceHist')
-    .select('unitPrice, effDate')
-    .eq('prodCode', prodCode)
-    .order('effDate', { ascending: false })
+    .from('pricehist')
+    .select('unitprice, effdate')
+    .eq('prodcode', prodCode)
+    .order('effdate', { ascending: false })
     .limit(1)
     .single();
 
