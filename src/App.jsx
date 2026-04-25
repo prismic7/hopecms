@@ -6,6 +6,7 @@ import { UserRightsProvider } from './context/UserRightsContext'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import AuthCallbackPage from './pages/AuthCallbackPage'
+import CustomerDetailPage from './pages/CustomerDetailPage'
 
 // ── M2's App Shell (built in Sprint 1 Issue 7) ───────────────────────────────
 import AppShell from './components/AppShell'
@@ -125,6 +126,7 @@ export default function App() {
             {/* ── Protected routes — all authenticated users ──────────── */}
             <Route element={<ProtectedRoute />}>
               <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/customers/:custno" element={<CustomerDetailPage />} />
               <Route path="/sales" element={<SalesPage />} />
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/admin" element={<AdminPage />} />
