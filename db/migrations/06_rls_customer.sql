@@ -63,7 +63,7 @@ AS $$
     WHERE  "userid" = auth.uid()::text;
 $$;
 
--- Returns the right_value (0 or 1) for a given rightCode for the currently
+-- Returns the right_value (0 or 1) for a given rightcode for the currently
 -- authenticated Supabase user. Returns 0 when the user has no row for that
 -- right (safe default — deny rather than allow).
 CREATE OR REPLACE FUNCTION public.get_my_right(p_right_code TEXT)
@@ -76,7 +76,7 @@ AS $$
     SELECT COALESCE("right_value", 0)
     FROM   public."UserModule_Rights"
     WHERE  "userid"    = auth.uid()::text
-      AND  "rightCode" = p_right_code;
+      AND  "rightcode" = p_right_code;
 $$;
 
 
