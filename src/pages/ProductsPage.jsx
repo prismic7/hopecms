@@ -84,11 +84,11 @@ export default function ProductsPage() {
 
         <div className="pp-topbar">
           <h1 className="pp-title">Products</h1>
-          <p className="pp-sub">Product catalogue with price history — read only</p>
+          <p className="pp-sub">52 products — read only, no add, edit, or delete</p>
         </div>
 
         <div className="pp-notice">
-          This page is view-only. No add, edit, or delete operations are available on product records.
+          View-only — sales, products, and price history cannot be modified by any user type.
         </div>
 
         <div className="pp-controls">
