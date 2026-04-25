@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { getCustomers } from '../services/customerService'
 import { useAuth } from '../context/AuthContext'
+import AddCustomerModal from '../components/AddCustomerModal'
+import EditCustomerModal from '../components/EditCustomerModal'
+import SoftDeleteConfirmDialog from '../components/SoftDeleteConfirmDialog'
 
 export default function CustomersPage() {
   const { currentUser } = useAuth()
@@ -12,23 +15,26 @@ export default function CustomersPage() {
   const [search, setSearch] = useState('')
   const [paytermFilter, setPaytermFilter] = useState('')
 
+  const [showAdd, setShowAdd] = useState(false)
+  const [editTarget, setEditTarget] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+
   const showStamp = userType === 'ADMIN' || userType === 'SUPERADMIN'
 
-  useEffect(() => {
-    async function fetchCustomers() {
-      setLoading(true)
-      setError(null)
-      try {
-        const data = await getCustomers(userType)
-        setCustomers(data || [])
-      } catch {
-        setError('Failed to load customers. Please try again.')
-      } finally {
-        setLoading(false)
-      }
+  async function fetchCustomers() {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await getCustomers(userType)
+      setCustomers(data || [])
+    } catch {
+      setError('Failed to load customers. Please try again.')
+    } finally {
+      setLoading(false)
     }
-    fetchCustomers()
-  }, [userType])
+  }
+
+  useEffect(() => { fetchCustomers() }, [userType])
 
   const filtered = customers.filter((c) => {
     const matchesSearch =
@@ -38,7 +44,6 @@ export default function CustomersPage() {
     return matchesSearch && matchesPayterm
   })
 
-  /* ── Injected styles ── */
   const css = `
     .cms-page { padding: 28px 32px; font-family: sans-serif; max-width: 1100px; margin: 0 auto; }
     .cms-topbar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
@@ -52,7 +57,6 @@ export default function CustomersPage() {
     .cms-search { width: 100%; box-sizing: border-box; padding: 8px 12px 8px 34px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; color: #111827; outline: none; }
     .cms-search:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
     .cms-select { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; color: #111827; background: #fff; outline: none; }
-    .cms-select:focus { border-color: #93c5fd; }
     .cms-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
     .cms-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .cms-table thead { background: #f9fafb; }
@@ -68,38 +72,46 @@ export default function CustomersPage() {
     .badge-active { background: #d1fae5; color: #065f46; }
     .badge-inactive { background: #fee2e2; color: #991b1b; }
     .badge-dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
-    .badge-dot-active { background: #059669; }
-    .badge-dot-inactive { background: #dc2626; }
     .stamp-cell { font-size: 11px; color: #9ca3af; font-family: monospace; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .btn-edit { padding: 4px 10px; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 12px; cursor: pointer; background: #fff; color: #374151; margin-right: 6px; }
-    .btn-edit:hover { background: #f9fafb; border-color: #d1d5db; }
+    .btn-edit:hover { background: #f9fafb; }
     .btn-del { padding: 4px 10px; border-radius: 6px; border: 1px solid #fecaca; font-size: 12px; cursor: pointer; background: #fff; color: #dc2626; }
     .btn-del:hover { background: #fef2f2; }
     .cms-footer { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af; }
     .cms-empty { text-align: center; padding: 56px 24px; color: #9ca3af; font-size: 14px; }
     .cms-error { text-align: center; padding: 56px 24px; color: #dc2626; font-size: 14px; }
-    .cms-loading { text-align: center; padding: 56px 24px; color: #6b7280; font-size: 14px; }
   `
 
-  if (loading) return (
-    <>
-      <style>{css}</style>
-      <div className="cms-loading">Loading customers…</div>
-    </>
-  )
-
-  if (error) return (
-    <>
-      <style>{css}</style>
-      <div className="cms-error">{error}</div>
-    </>
-  )
+  if (loading) return <><style>{css}</style><div className="cms-empty">Loading customers…</div></>
+  if (error) return <><style>{css}</style><div className="cms-error">{error}</div></>
 
   return (
     <>
       <style>{css}</style>
-      <div className="cms-page">
 
+      {/* Modals */}
+      {showAdd && (
+        <AddCustomerModal
+          onClose={() => setShowAdd(false)}
+          onSuccess={fetchCustomers}
+        />
+      )}
+      {editTarget && (
+        <EditCustomerModal
+          customer={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSuccess={fetchCustomers}
+        />
+      )}
+      {deleteTarget && (
+        <SoftDeleteConfirmDialog
+          customer={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onSuccess={fetchCustomers}
+        />
+      )}
+
+      <div className="cms-page">
         {/* Header */}
         <div className="cms-topbar">
           <div>
@@ -107,7 +119,9 @@ export default function CustomersPage() {
             <p className="cms-sub">{customers.length} total records</p>
           </div>
           {/* Add button — rights gating wired by M4 */}
-          <button className="cms-add-btn">+ Add customer</button>
+          <button className="cms-add-btn" onClick={() => setShowAdd(true)}>
+            + Add customer
+          </button>
         </div>
 
         {/* Search & Filter */}
@@ -158,25 +172,21 @@ export default function CustomersPage() {
                       <td className="cms-custno">{c.custno}</td>
                       <td className="cms-custname">{c.custname}</td>
                       <td className="cms-address" title={c.address}>{c.address}</td>
-                      <td>
-                        <span className="payterm-pill">{c.payterm}</span>
-                      </td>
+                      <td><span className="payterm-pill">{c.payterm}</span></td>
                       <td>
                         <span className={`badge ${c.record_status === 'ACTIVE' ? 'badge-active' : 'badge-inactive'}`}>
-                          <span className={`badge-dot ${c.record_status === 'ACTIVE' ? 'badge-dot-active' : 'badge-dot-inactive'}`} />
+                          <span className="badge-dot" style={{ background: c.record_status === 'ACTIVE' ? '#059669' : '#dc2626' }} />
                           {c.record_status === 'ACTIVE' ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       {showStamp && (
-                        <td className="stamp-cell" title={c.stamp || ''}>
-                          {c.stamp || '—'}
-                        </td>
+                        <td className="stamp-cell" title={c.stamp || ''}>{c.stamp || '—'}</td>
                       )}
                       <td>
                         {/* Rights gating wired by M4 */}
-                        <button className="btn-edit">Edit</button>
+                        <button className="btn-edit" onClick={() => setEditTarget(c)}>Edit</button>
                         {userType === 'SUPERADMIN' && (
-                          <button className="btn-del">Delete</button>
+                          <button className="btn-del" onClick={() => setDeleteTarget(c)}>Delete</button>
                         )}
                       </td>
                     </tr>
@@ -189,7 +199,6 @@ export default function CustomersPage() {
             </>
           )}
         </div>
-
       </div>
     </>
   )
