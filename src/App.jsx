@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { UserRightsProvider } from './context/UserRightsContext'
 
 // ── Pages that exist after Sprint 1 ──────────────────────────────────────────
-import LoginPage        from './pages/LoginPage'
-import RegisterPage     from './pages/RegisterPage'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
 import AuthCallbackPage from './pages/AuthCallbackPage'
 
 // ── M2's App Shell (built in Sprint 1 Issue 7) ───────────────────────────────
@@ -12,10 +13,10 @@ import AppShell from './components/AppShell'
 // ── M1's placeholder pages (Sprint 1 Issue 3) ────────────────────────────────
 // These should exist as placeholder files. If Vite reports a missing import,
 // ask M1 to create the file with: export default function XPage() { return <div>X</div> }
-import CustomersPage        from './pages/CustomersPage'
-import SalesPage            from './pages/SalesPage'
-import ProductsPage         from './pages/ProductsPage'
-import AdminPage            from './pages/AdminPage'
+import CustomersPage from './pages/CustomersPage'
+import SalesPage from './pages/SalesPage'
+import ProductsPage from './pages/ProductsPage'
+import AdminPage from './pages/AdminPage'
 import DeletedCustomersPage from './pages/DeletedCustomersPage'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -87,28 +88,30 @@ export default function App() {
     // AuthProvider MUST wrap BrowserRouter so useAuth() works inside
     // ProtectedRoute and every other component in the tree
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+      <UserRightsProvider>
+        <BrowserRouter>
+          <Routes>
 
-          {/* ── Public routes ────────────────────────────────────────── */}
-          <Route path="/login"         element={<LoginPage />} />
-          <Route path="/register"      element={<RegisterPage />} />
-          <Route path="/auth/callback" element={<AuthCallbackPage />} />
+            {/* ── Public routes ────────────────────────────────────────── */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
-          {/* ── Protected routes — all wrapped by AppShell ───────────── */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/customers"         element={<CustomersPage />} />
-            <Route path="/sales"             element={<SalesPage />} />
-            <Route path="/products"          element={<ProductsPage />} />
-            <Route path="/admin"             element={<AdminPage />} />
-            <Route path="/deleted-customers" element={<DeletedCustomersPage />} />
-          </Route>
+            {/* ── Protected routes — all wrapped by AppShell ───────────── */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/sales" element={<SalesPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/deleted-customers" element={<DeletedCustomersPage />} />
+            </Route>
 
-          {/* ── Catch-all: redirect unknown paths to login ───────────── */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+            {/* ── Catch-all: redirect unknown paths to login ───────────── */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
 
-        </Routes>
-      </BrowserRouter>
+          </Routes>
+        </BrowserRouter>
+      </UserRightsProvider>
     </AuthProvider>
   )
 }
