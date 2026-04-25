@@ -79,11 +79,11 @@ export default function DeletedCustomersPage() {
 
         <div className="dc-topbar">
           <h1 className="dc-title">Deleted Customers</h1>
-          <p className="dc-sub">Inactive customer records — visible to Admin and Superadmin only</p>
+          <p className="dc-sub">Soft-deleted records — recoverable by Admin and Superadmin only</p>
         </div>
 
         <div className="dc-warning">
-          These customers have been soft-deleted. They are invisible to regular users. You can recover them to make them active again.
+          These customers have been soft-deleted and are invisible to USER accounts everywhere in the system — including direct API calls blocked by RLS. Recovery restores full visibility.
         </div>
 
         <div className="dc-controls">
