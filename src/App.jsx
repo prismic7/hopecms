@@ -49,6 +49,32 @@ function ProtectedRoute() {
   )
 }
 
+// AdminRoute — extends ProtectedRoute by also blocking USER accounts.
+// Used for routes that require ADMIN or SUPERADMIN access.
+// USER accounts are redirected to /customers.
+function AdminRoute() {
+  const { currentUser, loading, signOut } = useAuth()
+
+  // Show a spinner while the login guard is running
+  if (loading) return <LoadingScreen />
+
+  // Not authenticated — redirect to login
+  if (!currentUser) return <Navigate to="/login" replace />
+
+  // USER accounts are not allowed — redirect to customers
+  if (currentUser.user_type === 'USER') return <Navigate to="/customers" replace />
+
+  // ADMIN or SUPERADMIN — render AppShell wrapping the matched child route
+  return (
+    <AppShell
+      currentUser={currentUser}
+      onLogout={signOut}
+    >
+      <Outlet />
+    </AppShell>
+  )
+}
+
 // Simple full-screen loading spinner shown while AuthContext resolves
 function LoadingScreen() {
   return (
@@ -91,18 +117,22 @@ export default function App() {
       <UserRightsProvider>
         <BrowserRouter>
           <Routes>
-
             {/* ── Public routes ────────────────────────────────────────── */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
-            {/* ── Protected routes — all wrapped by AppShell ───────────── */}
+            {/* ── Protected routes — all authenticated users ──────────── */}
             <Route element={<ProtectedRoute />}>
               <Route path="/customers" element={<CustomersPage />} />
               <Route path="/sales" element={<SalesPage />} />
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/admin" element={<AdminPage />} />
+            </Route>
+
+            {/* ── Admin-only routes — ADMIN and SUPERADMIN only ───────── */}
+            {/* USER accounts are redirected to /customers               */}
+            <Route element={<AdminRoute />}>
               <Route path="/deleted-customers" element={<DeletedCustomersPage />} />
             </Route>
 
