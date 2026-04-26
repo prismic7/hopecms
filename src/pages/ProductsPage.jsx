@@ -63,7 +63,7 @@ export default function ProductsPage() {
     setPriceLoading(true)
     setPriceHist([])
     try {
-      const data = await getPriceHistory(prod.prodCode)
+      const data = await getPriceHistory(prod.prodcode)
       setPriceHist(data || [])
     } catch {
       setPriceHist([])
@@ -73,7 +73,7 @@ export default function ProductsPage() {
   }
 
   const filtered = products.filter((p) =>
-    p.prodCode?.toLowerCase().includes(search.toLowerCase()) ||
+    p.prodcode?.toLowerCase().includes(search.toLowerCase()) ||
     p.description?.toLowerCase().includes(search.toLowerCase())
   )
 
@@ -128,11 +128,11 @@ export default function ProductsPage() {
                 <tbody>
                   {filtered.map((p) => (
                     <tr
-                      key={p.prodCode}
-                      className={selectedProd?.prodCode === p.prodCode ? 'selected' : ''}
+                      key={p.prodcode}
+                      className={selectedProd?.prodcode === p.prodcode ? 'selected' : ''}
                       onClick={() => handleSelectProduct(p)}
                     >
-                      <td className="pp-mono">{p.prodCode}</td>
+                      <td className="pp-mono">{p.prodcode}</td>
                       <td style={{ fontWeight: 500 }}>{p.description}</td>
                       <td><span className="pp-unit">{p.unit}</span></td>
                     </tr>
@@ -146,7 +146,7 @@ export default function ProductsPage() {
           <div className="pp-card">
             <div className="pp-card-header">
               <p className="pp-card-title">
-                Price History {selectedProd ? `— ${selectedProd.prodCode}` : ''}
+                Price History {selectedProd ? `— ${selectedProd.prodcode}` : ''}
               </p>
               {selectedProd && (
                 <p className="pp-card-sub">{selectedProd.description}</p>
@@ -160,13 +160,13 @@ export default function ProductsPage() {
               <div className="pp-empty">No price history found.</div>
             ) : (
               priceHist.map((ph, i) => (
-                <div key={i} className={`pp-hist-row ${i === 0 ? 'pp-hist-latest' : ''}`}>
+                <div key={ph.effdate} className={`pp-hist-row ${i === 0 ? 'pp-hist-latest' : ''}`}>
                   <span className="pp-hist-date">
-                    {ph.effDate}
+                    {ph.effdate}
                     {i === 0 && <span className="pp-hist-tag">current</span>}
                   </span>
                   <span className="pp-hist-price">
-                    ₱{Number(ph.unitPrice).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                    ₱{Number(ph.unitprice).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               ))
