@@ -191,10 +191,16 @@ export default function CustomersPage() {
                         <td className="stamp-cell" title={c.stamp || ''}>{c.stamp || '—'}</td>
                       )}
                       <td>
-                        {/* Rights gating wired by M4 */}
-                        <button className="btn-edit" onClick={() => setEditTarget(c)}>Edit</button>
-                        {userType === 'SUPERADMIN' && (
-                          <button className="btn-del" onClick={() => setDeleteTarget(c)}>Delete</button>
+                        {c.record_status === 'ACTIVE' ? (
+                          <>
+                            {/* Rights gating wired by M4 */}
+                            <button className="btn-edit" onClick={() => setEditTarget(c)}>Edit</button>
+                            {userType === 'SUPERADMIN' && (
+                              <button className="btn-del" onClick={() => setDeleteTarget(c)}>Delete</button>
+                            )}
+                          </>
+                        ) : (
+                          <span style={{ fontSize: '12px', color: '#9ca3af' }}>—</span>
                         )}
                       </td>
                     </tr>
