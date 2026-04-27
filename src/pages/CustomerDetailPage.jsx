@@ -186,7 +186,7 @@ export default function CustomerDetailPage() {
                   <tbody>
                     {detail.map((d, i) => (
                       <tr key={i}>
-                        <td className="cd-mono">{d.product?.prodCode}</td>
+                        <td className="cd-mono">{d.product?.prodcode}</td>
                         <td style={{ fontWeight: 500 }}>{d.product?.description}</td>
                         <td><span className="sd-unit">{d.product?.unit}</span></td>
                         <td style={{ textAlign: 'right', fontWeight: 600 }}>{d.quantity}</td>
@@ -263,13 +263,13 @@ export default function CustomerDetailPage() {
                 <tbody>
                   {sales.map((s) => (
                     <tr
-                      key={s.transNo}
-                      className={selectedTrans === s.transNo ? 'selected' : ''}
-                      onClick={() => handleSelectTransaction(s.transNo)}
+                      key={s.transno}
+                      className={selectedTrans === s.transno ? 'selected' : ''}
+                      onClick={() => handleSelectTransaction(s.transno)}
                     >
-                      <td className="cd-mono">{s.transNo}</td>
-                      <td>{s.salesDate}</td>
-                      <td className="cd-mono">{s.empNo}</td>
+                      <td className="cd-mono">{s.transno}</td>
+                      <td>{s.salesdate}</td>
+                      <td className="cd-mono">{s.empno}</td>
                       <td>
                         <button className="cd-view-btn">View items →</button>
                       </td>
