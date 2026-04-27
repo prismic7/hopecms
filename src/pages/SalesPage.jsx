@@ -132,13 +132,13 @@ export default function SalesPage() {
                 <tbody>
                   {sales.map((s) => (
                     <tr
-                      key={s.transno}
-                      className={selectedTrans === s.transno ? 'selected' : ''}
-                      onClick={() => handleSelectTransaction(s.transno)}
+                      key={s.transNo}
+                      className={selectedTrans === s.transNo ? 'selected' : ''}
+                      onClick={() => handleSelectTransaction(s.transNo)}
                     >
-                      <td className="sp-mono">{s.transno}</td>
-                      <td>{s.salesdate}</td>
-                      <td className="sp-mono">{s.empno}</td>
+                      <td className="sp-mono">{s.transNo}</td>
+                      <td>{s.salesDate}</td>
+                      <td className="sp-mono">{s.empNo}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -175,7 +175,7 @@ export default function SalesPage() {
                 <tbody>
                   {detail.map((d, i) => (
                     <tr key={i}>
-                      <td className="sp-mono">{d.product?.prodcode}</td>
+                      <td className="sp-mono">{d.product?.prodCode}</td>
                       <td>{d.product?.description}</td>
                       <td>
                         <span className="sp-badge">{d.product?.unit}</span>
