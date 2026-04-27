@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getCustomers } from '../services/customerService'
 import { useAuth } from '../context/AuthContext'
+import { useRights } from '../context/UserRightsContext'
 import { useNavigate } from 'react-router-dom'
 import AddCustomerModal from '../components/AddCustomerModal'
 import EditCustomerModal from '../components/EditCustomerModal'
@@ -8,6 +9,7 @@ import SoftDeleteConfirmDialog from '../components/SoftDeleteConfirmDialog'
 
 export default function CustomersPage() {
   const { currentUser } = useAuth()
+  const { rights } = useRights()
   const userType = currentUser?.user_type
 
   const [customers, setCustomers] = useState([])
@@ -21,6 +23,10 @@ export default function CustomersPage() {
   const [deleteTarget, setDeleteTarget] = useState(null)
 
   const showStamp = userType === 'ADMIN' || userType === 'SUPERADMIN'
+  // Rights-gated visibility
+  const canAdd = rights.CUST_ADD === 1
+  const canEdit = rights.CUST_EDIT === 1
+  const canDel = rights.CUST_DEL === 1
   const navigate = useNavigate()
 
   async function fetchCustomers() {
@@ -120,10 +126,11 @@ export default function CustomersPage() {
             <h1 className="cms-title">Customers</h1>
             <p className="cms-sub">{customers.length} total records</p>
           </div>
-          {/* Add button — rights gating wired by M4 */}
-          <button className="cms-add-btn" onClick={() => setShowAdd(true)}>
-            + Add customer
-          </button>
+          {canAdd && (
+            <button className="cms-add-btn" onClick={() => setShowAdd(true)}>
+              + Add customer
+            </button>
+          )}
         </div>
 
         {/* Search & Filter */}
@@ -193,10 +200,14 @@ export default function CustomersPage() {
                       <td>
                         {c.record_status === 'ACTIVE' ? (
                           <>
-                            {/* Rights gating wired by M4 */}
-                            <button className="btn-edit" onClick={() => setEditTarget(c)}>Edit</button>
-                            {userType === 'SUPERADMIN' && (
+                            {canEdit && (
+                              <button className="btn-edit" onClick={() => setEditTarget(c)}>Edit</button>
+                            )}
+                            {canDel && (
                               <button className="btn-del" onClick={() => setDeleteTarget(c)}>Delete</button>
+                            )}
+                            {!canEdit && !canDel && (
+                              <span style={{ fontSize: '12px', color: '#9ca3af' }}>—</span>
                             )}
                           </>
                         ) : (
