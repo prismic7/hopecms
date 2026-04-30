@@ -131,7 +131,7 @@ export default function AppShell({ currentUser, onLogout = () => { }, children }
           {/* Nav links */}
           <nav style={styles.nav} aria-label="Main navigation">
             <p style={styles.navSection}>Main Menu</p>
-            {visibleNavItems.map(({ label, path, icon }) => (
+            {visibleNavItems.map(({ label, path, icon, title }) => (
               <NavLink
                 key={path}
                 to={path}

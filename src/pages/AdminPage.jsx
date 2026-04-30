@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { activateUser, deactivateUser } from '../services/adminService'
 
 export default function AdminPage() {
   const { currentUser } = useAuth()
@@ -68,13 +69,10 @@ export default function AdminPage() {
   async function handleActivate(userId) {
     setActionLoading(userId)
     try {
-      await supabase
-        .from('user')
-        .update({ record_status: 'ACTIVE' })
-        .eq('userid', userId)
+      await activateUser(userId)
       await fetchUsers()
-    } catch {
-      alert('Failed to activate user.')
+    } catch (err) {
+      alert(err.message || 'Failed to activate user.')
     } finally {
       setActionLoading(null)
     }
@@ -83,13 +81,10 @@ export default function AdminPage() {
   async function handleDeactivate(userId) {
     setActionLoading(userId)
     try {
-      await supabase
-        .from('user')
-        .update({ record_status: 'INACTIVE' })
-        .eq('userid', userId)
+      await deactivateUser(userId)
       await fetchUsers()
-    } catch {
-      alert('Failed to deactivate user.')
+    } catch (err) {
+      alert(err.message || 'Failed to deactivate user.')
     } finally {
       setActionLoading(null)
     }
