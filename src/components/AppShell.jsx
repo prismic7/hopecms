@@ -24,7 +24,7 @@ const NAV_ITEMS = [
   { label: "Sales", path: "/sales", icon: <SalesIcon /> },
   { label: "Products", path: "/products", icon: <ProductIcon /> },
   { label: "Deleted Customers", path: "/deleted-customers", icon: <TrashIcon /> },
-  { label: "Admin", path: "/admin", icon: <AdminIcon /> },
+  { label: "Admin", path: "/admin", icon: <AdminIcon />, title: "Admin Module — SUPERADMIN only" },
 ];
 
 export default function AppShell({ currentUser, onLogout = () => { }, children }) {
@@ -136,6 +136,7 @@ export default function AppShell({ currentUser, onLogout = () => { }, children }
                 key={path}
                 to={path}
                 onClick={() => setSidebarOpen(false)}
+                title={title}
                 style={({ isActive }) => ({
                   ...styles.navLink,
                   ...(isActive ? styles.navLinkActive : {}),
