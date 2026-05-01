@@ -22,8 +22,7 @@ export async function getTopCustomers() {
 export async function getProductRevenue() {
   const { data, error } = await supabase
     .from('product_revenue')
-    .select('prodCode, description, unit, totalQtySold, totalRevenue')
-    .order('totalRevenue', { ascending: false });
+    .select('*')
   if (error) throw error;
   return data;
 }

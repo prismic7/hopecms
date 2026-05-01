@@ -18,6 +18,9 @@ import CustomersPage from './pages/CustomersPage'
 import SalesPage from './pages/SalesPage'
 import ProductsPage from './pages/ProductsPage'
 import AdminPage from './pages/AdminPage'
+import CustomerSalesSummaryPage from './pages/CustomerSalesSummaryPage'
+import TopCustomersPage from './pages/TopCustomersPage'
+import ProductRevenuePage from './pages/ProductRevenuePage'
 import DeletedCustomersPage from './pages/DeletedCustomersPage'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -130,6 +133,9 @@ export default function App() {
               <Route path="/sales" element={<SalesPage />} />
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/reports/customer-sales" element={<CustomerSalesSummaryPage />} />
+              <Route path="/reports/top-customers" element={<TopCustomersPage />} />
+              <Route path="/reports/product-revenue" element={<ProductRevenuePage />} />
             </Route>
 
             {/* ── Admin-only routes — ADMIN and SUPERADMIN only ───────── */}
