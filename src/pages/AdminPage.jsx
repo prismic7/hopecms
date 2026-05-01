@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { activateUser, deactivateUser } from '../services/adminService'
+import { getUsers, activateUser, deactivateUser } from '../services/adminService'
 
 export default function AdminPage() {
   const { currentUser } = useAuth()
@@ -45,19 +44,19 @@ export default function AdminPage() {
     .ap-btn-disabled { padding: 5px 12px; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 12px; font-weight: 500; cursor: not-allowed; background: #f9fafb; color: #9ca3af; }
     .ap-empty { text-align: center; padding: 56px 24px; color: #9ca3af; font-size: 13px; }
     .ap-footer { padding: 10px 14px; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af; }
+    @media (max-width: 640px) {
+      .ap-page { padding: 16px; }
+      .ap-table th:nth-child(1), .ap-table td:nth-child(1) { display: none; }
+    }
   `
 
   async function fetchUsers() {
     setLoading(true)
     setError(null)
     try {
-      const { data, error } = await supabase
-        .from('user')
-        .select('*')
-        .order('user_type')
-      if (error) throw error
+      const data = await getUsers()
       setUsers(data || [])
-    } catch {
+    } catch (err) {
       setError('Failed to load users.')
     } finally {
       setLoading(false)
@@ -96,7 +95,11 @@ export default function AdminPage() {
   )
 
   function TypePill({ type }) {
-    const cls = type === 'SUPERADMIN' ? 'ap-type-super' : type === 'ADMIN' ? 'ap-type-admin' : 'ap-type-user'
+    const cls = type === 'SUPERADMIN'
+      ? 'ap-type-super'
+      : type === 'ADMIN'
+        ? 'ap-type-admin'
+        : 'ap-type-user'
     return <span className={`ap-type-pill ${cls}`}>{type}</span>
   }
 
@@ -111,14 +114,15 @@ export default function AdminPage() {
         </div>
 
         <div className="ap-notice">
-          SUPERADMIN accounts cannot be modified. Activate a new user after they register to grant them access.
+          SUPERADMIN accounts cannot be modified. Activate a new user after they
+          register to grant them access.
         </div>
 
         <div className="ap-controls">
           <input
             className="ap-search"
             type="text"
-            placeholder="Search by username or user ID…"
+            placeholder="Search by username or user ID..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -128,12 +132,14 @@ export default function AdminPage() {
           <div className="ap-card-header">
             <span className="ap-card-title">All Users</span>
             {!loading && (
-              <span className="ap-card-count">{filtered.length} user{filtered.length !== 1 ? 's' : ''}</span>
+              <span className="ap-card-count">
+                {filtered.length} user{filtered.length !== 1 ? 's' : ''}
+              </span>
             )}
           </div>
 
           {loading ? (
-            <div className="ap-empty">Loading users…</div>
+            <div className="ap-empty">Loading users...</div>
           ) : error ? (
             <div className="ap-empty" style={{ color: '#dc2626' }}>{error}</div>
           ) : filtered.length === 0 ? (
@@ -154,17 +160,20 @@ export default function AdminPage() {
                   {filtered.map((u) => {
                     const isSuperAdmin = u.user_type === 'SUPERADMIN'
                     const isActive = u.record_status === 'ACTIVE'
-                    const isCurrentUser = u.userid === (currentUser?.userid || currentUser?.id)
+                    const isCurrentUser = u.userid === currentUser?.userid
                     const isDisabled = isSuperAdmin || isCurrentUser
 
                     return (
                       <tr key={u.userid} className={isDisabled ? 'disabled-row' : ''}>
                         <td className="ap-mono">{u.userid}</td>
-                        <td style={{ fontWeight: 500 }}>{u.username || '—'}</td>
+                        <td style={{ fontWeight: 500 }}>{u.username || '-'}</td>
                         <td><TypePill type={u.user_type} /></td>
                         <td>
                           <span className={isActive ? 'ap-badge-active' : 'ap-badge-inactive'}>
-                            <span className="ap-badge-dot" style={{ background: isActive ? '#059669' : '#dc2626' }} />
+                            <span
+                              className="ap-badge-dot"
+                              style={{ background: isActive ? '#059669' : '#dc2626' }}
+                            />
                             {isActive ? 'Active' : 'Inactive'}
                           </span>
                         </td>
@@ -184,7 +193,7 @@ export default function AdminPage() {
                                   disabled={actionLoading === u.userid}
                                   onClick={() => handleActivate(u.userid)}
                                 >
-                                  {actionLoading === u.userid ? '…' : 'Activate'}
+                                  {actionLoading === u.userid ? '...' : 'Activate'}
                                 </button>
                               )}
                               {isActive && (
@@ -193,7 +202,7 @@ export default function AdminPage() {
                                   disabled={actionLoading === u.userid}
                                   onClick={() => handleDeactivate(u.userid)}
                                 >
-                                  {actionLoading === u.userid ? '…' : 'Deactivate'}
+                                  {actionLoading === u.userid ? '...' : 'Deactivate'}
                                 </button>
                               )}
                             </>
