@@ -10,6 +10,7 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState(null)
   const [roleLoading, setRoleLoading] = useState(null)
   const [search, setSearch] = useState('')
+  const { showToast, ToastComponent } = useToast()
 
   // Confirm modal state
   const [pendingRoleChange, setPendingRoleChange] = useState(null)
@@ -103,8 +104,8 @@ export default function AdminPage() {
     try {
       const data = await getUsers()
       setUsers(data || [])
-    } catch (err) {
-      setError('Failed to load users.')
+    } catch {
+      showToast('Failed to load users.', 'error')
     } finally {
       setLoading(false)
     }
@@ -118,7 +119,7 @@ export default function AdminPage() {
       await activateUser(userId)
       await fetchUsers()
     } catch (err) {
-      alert(err.message || 'Failed to activate user.')
+      showToast(err.message || 'Failed to activate user.', 'error')
     } finally {
       setActionLoading(null)
     }
@@ -130,7 +131,7 @@ export default function AdminPage() {
       await deactivateUser(userId)
       await fetchUsers()
     } catch (err) {
-      alert(err.message || 'Failed to deactivate user.')
+      showToast(err.message || 'Failed to deactivate user.', 'error')
     } finally {
       setActionLoading(null)
     }
@@ -179,6 +180,7 @@ export default function AdminPage() {
 
   return (
     <>
+      {ToastComponent}
       <style>{css}</style>
       <div className="ap-page">
 
@@ -213,7 +215,11 @@ export default function AdminPage() {
           </div>
 
           {loading ? (
-            <div className="ap-empty">Loading users...</div>
+            <table className="ap-table">
+              <tbody>
+                <SkeletonTable rows={5} cols={5} />
+              </tbody>
+            </table>
           ) : error ? (
             <div className="ap-empty" style={{ color: '#dc2626' }}>{error}</div>
           ) : filtered.length === 0 ? (

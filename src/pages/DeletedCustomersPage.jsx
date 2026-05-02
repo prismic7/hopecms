@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { getCustomers, recoverCustomer } from '../services/customerService'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../components/Toast'
+import { SkeletonTable } from '../components/Skeleton'
 
 export default function DeletedCustomersPage() {
   const { currentUser } = useAuth()
@@ -9,6 +11,7 @@ export default function DeletedCustomersPage() {
   const [error, setError] = useState(null)
   const [recovering, setRecovering] = useState(null)
   const [search, setSearch] = useState('')
+  const { showToast, ToastComponent } = useToast()
 
   const css = `
     .dc-page { padding: 28px 32px; max-width: 1100px; margin: 0 auto; font-family: sans-serif; }
@@ -61,7 +64,7 @@ export default function DeletedCustomersPage() {
       await recoverCustomer(custno, currentUser?.userid || currentUser?.id)
       await fetchDeleted()
     } catch {
-      alert('Failed to recover customer. Please try again.')
+      showToast('Failed to recover customer. Please try again.', 'error')
     } finally {
       setRecovering(null)
     }
@@ -74,6 +77,7 @@ export default function DeletedCustomersPage() {
 
   return (
     <>
+      {ToastComponent}
       <style>{css}</style>
       <div className="dc-page">
 
@@ -83,7 +87,9 @@ export default function DeletedCustomersPage() {
         </div>
 
         <div className="dc-warning">
-          These customers have been soft-deleted and are invisible to USER accounts everywhere in the system — including direct API calls blocked by RLS. Recovery restores full visibility.
+          These customers have been soft-deleted and are invisible to USER accounts
+          everywhere in the system — including direct API calls blocked by RLS.
+          Recovery restores full visibility.
         </div>
 
         <div className="dc-controls">
@@ -100,12 +106,18 @@ export default function DeletedCustomersPage() {
           <div className="dc-card-header">
             <span className="dc-card-title">Inactive Records</span>
             {!loading && (
-              <span className="dc-card-count">{filtered.length} record{filtered.length !== 1 ? 's' : ''}</span>
+              <span className="dc-card-count">
+                {filtered.length} record{filtered.length !== 1 ? 's' : ''}
+              </span>
             )}
           </div>
 
           {loading ? (
-            <div className="dc-empty">Loading…</div>
+            <table className="dc-table">
+              <tbody>
+                <SkeletonTable rows={5} cols={6} />
+              </tbody>
+            </table>
           ) : error ? (
             <div className="dc-empty" style={{ color: '#dc2626' }}>{error}</div>
           ) : filtered.length === 0 ? (
@@ -142,7 +154,7 @@ export default function DeletedCustomersPage() {
                           disabled={recovering === c.custno}
                           onClick={() => handleRecover(c.custno)}
                         >
-                          {recovering === c.custno ? 'Recovering…' : 'Recover'}
+                          {recovering === c.custno ? 'Recovering...' : 'Recover'}
                         </button>
                       </td>
                     </tr>

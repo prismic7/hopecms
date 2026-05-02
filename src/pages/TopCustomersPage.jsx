@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getTopCustomers } from '../services/reportsService'
+import { useToast } from '../components/Toast'
 
 export default function TopCustomersPage() {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const navigate = useNavigate()
+  const { showToast, ToastComponent } = useToast()
 
   const css = `
     .tc-page { padding: 28px 32px; max-width: 1100px; margin: 0 auto; font-family: sans-serif; }
@@ -48,7 +50,7 @@ export default function TopCustomersPage() {
         const result = await getTopCustomers()
         setData(result || [])
       } catch {
-        setError('Failed to load top customers.')
+        showToast('Failed to load top customers.', 'error')
       } finally {
         setLoading(false)
       }
@@ -72,6 +74,7 @@ export default function TopCustomersPage() {
 
   return (
     <>
+      {ToastComponent}
       <style>{css}</style>
       <div className="tc-page">
 

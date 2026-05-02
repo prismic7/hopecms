@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getCustomerSalesSummary } from '../services/reportsService'
+import { useToast } from '../components/Toast'
+import { SkeletonTable } from '../components/Skeleton'
 
 export default function CustomerSalesSummaryPage() {
   const [data, setData] = useState([])
@@ -8,6 +10,7 @@ export default function CustomerSalesSummaryPage() {
   const [search, setSearch] = useState('')
   const [sortField, setSortField] = useState('totalSpend')
   const [sortAsc, setSortAsc] = useState(false)
+  const { showToast, ToastComponent } = useToast()
 
   const css = `
     .cs-page { padding: 28px 32px; max-width: 1100px; margin: 0 auto; font-family: sans-serif; }
@@ -44,8 +47,8 @@ export default function CustomerSalesSummaryPage() {
       try {
         const result = await getCustomerSalesSummary()
         setData(result || [])
-      } catch (err) {
-        setError('Failed to load customer sales summary.')
+      } catch {
+        showToast('Failed to load customer sales summary.', 'error')
       } finally {
         setLoading(false)
       }
@@ -88,6 +91,7 @@ export default function CustomerSalesSummaryPage() {
 
   return (
     <>
+      {ToastComponent}
       <style>{css}</style>
       <div className="cs-page">
 
@@ -117,7 +121,11 @@ export default function CustomerSalesSummaryPage() {
           </div>
 
           {loading ? (
-            <div className="cs-empty">Loading...</div>
+            <table className="cs-table">
+              <tbody>
+                <SkeletonTable rows={6} cols={5} />
+              </tbody>
+            </table>
           ) : error ? (
             <div className="cs-empty" style={{ color: '#dc2626' }}>{error}</div>
           ) : filtered.length === 0 ? (

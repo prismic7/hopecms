@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { getSalesByCustomer, getSalesDetail } from '../services/salesProductService'
+import { useToast } from '../components/Toast'
 
 export default function SalesPage() {
   const [custNo, setCustNo] = useState('')
@@ -11,6 +12,7 @@ export default function SalesPage() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [error, setError] = useState(null)
   const [searched, setSearched] = useState(false)
+  const { showToast, ToastComponent } = useToast()
 
   const css = `
     .sp-page { padding: 28px 32px; max-width: 1100px; margin: 0 auto; font-family: sans-serif; }
@@ -55,7 +57,7 @@ export default function SalesPage() {
       const data = await getSalesByCustomer(trimmed)
       setSales(data || [])
     } catch {
-      setError('Failed to load sales. Please check the customer number.')
+      showToast('Failed to load sales. Please check the customer number.', 'error')
     } finally {
       setLoading(false)
     }
@@ -77,6 +79,7 @@ export default function SalesPage() {
 
   return (
     <>
+      {ToastComponent}
       <style>{css}</style>
       <div className="sp-page">
 
