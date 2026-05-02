@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { getUsers, activateUser, deactivateUser, changeUserRole } from '../services/adminService'
-import { useToast } from '../components/Toast'
-import { SkeletonTable } from '../components/Skeleton'
 
 export default function AdminPage() {
   const { currentUser } = useAuth()
