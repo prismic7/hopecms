@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getProductRevenue } from '../services/reportsService'
+import { useToast } from '../components/Toast'
+import { SkeletonTable } from '../components/Skeleton'
 
 export default function ProductRevenuePage() {
   const [data, setData] = useState([])
@@ -8,6 +10,7 @@ export default function ProductRevenuePage() {
   const [search, setSearch] = useState('')
   const [sortField, setSortField] = useState('totalRevenue')
   const [sortAsc, setSortAsc] = useState(false)
+  const { showToast, ToastComponent } = useToast()
 
   const css = `
     .pr-page { padding: 28px 32px; max-width: 1100px; margin: 0 auto; font-family: sans-serif; }
@@ -47,7 +50,7 @@ export default function ProductRevenuePage() {
         const result = await getProductRevenue()
         setData(result || [])
       } catch {
-        setError('Failed to load product revenue.')
+        showToast('Failed to load product revenue.', 'error')
       } finally {
         setLoading(false)
       }
@@ -88,6 +91,7 @@ export default function ProductRevenuePage() {
 
   return (
     <>
+      {ToastComponent}
       <style>{css}</style>
       <div className="pr-page">
 
@@ -121,7 +125,11 @@ export default function ProductRevenuePage() {
           </div>
 
           {loading ? (
-            <div className="pr-empty">Loading...</div>
+            <table className="pr-table">
+              <tbody>
+                <SkeletonTable rows={5} cols={5} />
+              </tbody>
+            </table>
           ) : error ? (
             <div className="pr-empty" style={{ color: '#dc2626' }}>{error}</div>
           ) : filtered.length === 0 ? (

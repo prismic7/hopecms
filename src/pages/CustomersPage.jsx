@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom'
 import AddCustomerModal from '../components/AddCustomerModal'
 import EditCustomerModal from '../components/EditCustomerModal'
 import SoftDeleteConfirmDialog from '../components/SoftDeleteConfirmDialog'
+import { useToast } from '../components/Toast'
+import { SkeletonTable } from '../components/Skeleton'
 
 export default function CustomersPage() {
   const { currentUser } = useAuth()
@@ -17,6 +19,7 @@ export default function CustomersPage() {
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
   const [paytermFilter, setPaytermFilter] = useState('')
+  const { showToast, ToastComponent } = useToast()
 
   const [showAdd, setShowAdd] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
@@ -36,7 +39,7 @@ export default function CustomersPage() {
       const data = await getCustomers(userType)
       setCustomers(data || [])
     } catch {
-      setError('Failed to load customers. Please try again.')
+      showToast('Failed to load customers. Please try again.', 'error')
     } finally {
       setLoading(false)
     }
@@ -90,11 +93,11 @@ export default function CustomersPage() {
     .cms-error { text-align: center; padding: 56px 24px; color: #dc2626; font-size: 14px; }
   `
 
-  if (loading) return <><style>{css}</style><div className="cms-empty">Loading customers…</div></>
-  if (error) return <><style>{css}</style><div className="cms-error">{error}</div></>
+
 
   return (
     <>
+      {ToastComponent}
       <style>{css}</style>
 
       {/* Modals */}
@@ -159,7 +162,23 @@ export default function CustomersPage() {
 
         {/* Table */}
         <div className="cms-card">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <table className="cms-table">
+              <thead>
+                <tr>
+                  <th>Cust No.</th>
+                  <th>Name</th>
+                  <th>Address</th>
+                  <th>Pay Term</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <SkeletonTable rows={6} cols={6} />
+              </tbody>
+            </table>
+          ) : filtered.length === 0 ? (
             <div className="cms-empty">No customers found.</div>
           ) : (
             <>

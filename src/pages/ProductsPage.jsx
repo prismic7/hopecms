@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getProducts, getPriceHistory } from '../services/salesProductService'
+import { useToast } from '../components/Toast'
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([])
@@ -9,6 +10,7 @@ export default function ProductsPage() {
   const [selectedProd, setSelectedProd] = useState(null)
   const [priceHist, setPriceHist] = useState([])
   const [priceLoading, setPriceLoading] = useState(false)
+  const { showToast, ToastComponent } = useToast()
 
   const css = `
     .pp-page { padding: 28px 32px; max-width: 1100px; margin: 0 auto; font-family: sans-serif; }
@@ -50,7 +52,7 @@ export default function ProductsPage() {
         const data = await getProducts()
         setProducts(data || [])
       } catch {
-        setError('Failed to load products.')
+        showToast('Failed to load products.', 'error')
       } finally {
         setLoading(false)
       }
@@ -79,6 +81,7 @@ export default function ProductsPage() {
 
   return (
     <>
+      {ToastComponent}
       <style>{css}</style>
       <div className="pp-page">
 
@@ -95,14 +98,13 @@ export default function ProductsPage() {
           <input
             className="pp-search"
             type="text"
-            placeholder="Search by product code or description…"
+            placeholder="Search by product code or description..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
         <div className="pp-layout">
-          {/* Left — product list */}
           <div className="pp-card">
             <div className="pp-card-header">
               <p className="pp-card-title">Product Catalogue</p>
@@ -111,7 +113,7 @@ export default function ProductsPage() {
               )}
             </div>
             {loading ? (
-              <div className="pp-empty">Loading products…</div>
+              <div className="pp-empty">Loading products...</div>
             ) : error ? (
               <div className="pp-empty" style={{ color: '#dc2626' }}>{error}</div>
             ) : filtered.length === 0 ? (
@@ -142,7 +144,6 @@ export default function ProductsPage() {
             )}
           </div>
 
-          {/* Right — price history */}
           <div className="pp-card">
             <div className="pp-card-header">
               <p className="pp-card-title">
@@ -155,7 +156,7 @@ export default function ProductsPage() {
             {!selectedProd ? (
               <div className="pp-empty">Select a product to view its price history.</div>
             ) : priceLoading ? (
-              <div className="pp-empty">Loading…</div>
+              <div className="pp-empty">Loading...</div>
             ) : priceHist.length === 0 ? (
               <div className="pp-empty">No price history found.</div>
             ) : (
