@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { getUsers, activateUser, deactivateUser } from '../services/adminService'
+import { useToast } from '../components/Toast'
+import { SkeletonTable } from '../components/Skeleton'
 
 export default function AdminPage() {
   const { currentUser } = useAuth()
@@ -9,6 +11,7 @@ export default function AdminPage() {
   const [error, setError] = useState(null)
   const [actionLoading, setActionLoading] = useState(null)
   const [search, setSearch] = useState('')
+  const { showToast, ToastComponent } = useToast()
 
   const css = `
     .ap-page { padding: 28px 32px; max-width: 1100px; margin: 0 auto; font-family: sans-serif; }
@@ -56,8 +59,8 @@ export default function AdminPage() {
     try {
       const data = await getUsers()
       setUsers(data || [])
-    } catch (err) {
-      setError('Failed to load users.')
+    } catch {
+      showToast('Failed to load users.', 'error')
     } finally {
       setLoading(false)
     }
@@ -71,7 +74,7 @@ export default function AdminPage() {
       await activateUser(userId)
       await fetchUsers()
     } catch (err) {
-      alert(err.message || 'Failed to activate user.')
+      showToast(err.message || 'Failed to activate user.', 'error')
     } finally {
       setActionLoading(null)
     }
@@ -83,7 +86,7 @@ export default function AdminPage() {
       await deactivateUser(userId)
       await fetchUsers()
     } catch (err) {
-      alert(err.message || 'Failed to deactivate user.')
+      showToast(err.message || 'Failed to deactivate user.', 'error')
     } finally {
       setActionLoading(null)
     }
@@ -105,6 +108,7 @@ export default function AdminPage() {
 
   return (
     <>
+      {ToastComponent}
       <style>{css}</style>
       <div className="ap-page">
 
@@ -139,7 +143,11 @@ export default function AdminPage() {
           </div>
 
           {loading ? (
-            <div className="ap-empty">Loading users...</div>
+            <table className="ap-table">
+              <tbody>
+                <SkeletonTable rows={5} cols={5} />
+              </tbody>
+            </table>
           ) : error ? (
             <div className="ap-empty" style={{ color: '#dc2626' }}>{error}</div>
           ) : filtered.length === 0 ? (

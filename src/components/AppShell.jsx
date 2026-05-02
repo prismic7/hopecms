@@ -149,7 +149,7 @@ export default function AppShell({ currentUser, onLogout = () => { }, children }
                 {label}
               </NavLink>
             ))}
-            <p style={styles.navSection}>Reports</p>
+            <p style={{ ...styles.navSection, marginTop: '16px' }}>Reports</p>
             {visibleNavItems.filter(i => i.section === 'Reports').map(({ label, path, icon }) => (
               <NavLink
                 key={path}
@@ -296,6 +296,7 @@ function ReportIcon() {
     </svg>
   );
 }
+
 // ── Inline styles (no @media rules here) ─────────────────────────
 const BLUE = "#2563eb";
 
