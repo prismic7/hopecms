@@ -259,7 +259,6 @@ export default function AdminPage() {
                               >
                                 <option value="USER">USER</option>
                                 <option value="ADMIN">ADMIN</option>
-                                <option value="SUPERADMIN">SUPERADMIN</option>
                               </select>
                               {isRoleChanging && (
                                 <span className="ap-role-saving">Saving...</span>
