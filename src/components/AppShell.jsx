@@ -25,6 +25,9 @@ const NAV_ITEMS = [
   { label: "Products", path: "/products", icon: <ProductIcon /> },
   { label: "Deleted Customers", path: "/deleted-customers", icon: <TrashIcon /> },
   { label: "Admin", path: "/admin", icon: <AdminIcon />, title: "Admin Module — SUPERADMIN only" },
+  { label: "Customer Sales Summary", path: "/reports/customer-sales", icon: <ReportIcon />, section: "Reports" },
+  { label: "Top Customers", path: "/reports/top-customers", icon: <ReportIcon />, section: "Reports" },
+  { label: "Product Revenue", path: "/reports/product-revenue", icon: <ReportIcon />, section: "Reports" },
 ];
 
 export default function AppShell({ currentUser, onLogout = () => { }, children }) {
@@ -131,12 +134,27 @@ export default function AppShell({ currentUser, onLogout = () => { }, children }
           {/* Nav links */}
           <nav style={styles.nav} aria-label="Main navigation">
             <p style={styles.navSection}>Main Menu</p>
-            {visibleNavItems.map(({ label, path, icon, title }) => (
+            {visibleNavItems.filter(i => !i.section).map(({ label, path, icon, title }) => (
               <NavLink
                 key={path}
                 to={path}
                 onClick={() => setSidebarOpen(false)}
                 title={title}
+                style={({ isActive }) => ({
+                  ...styles.navLink,
+                  ...(isActive ? styles.navLinkActive : {}),
+                })}
+              >
+                <span style={styles.navIcon}>{icon}</span>
+                {label}
+              </NavLink>
+            ))}
+            <p style={{ ...styles.navSection, marginTop: '16px' }}>Reports</p>
+            {visibleNavItems.filter(i => i.section === 'Reports').map(({ label, path, icon }) => (
+              <NavLink
+                key={path}
+                to={path}
+                onClick={() => setSidebarOpen(false)}
                 style={({ isActive }) => ({
                   ...styles.navLink,
                   ...(isActive ? styles.navLinkActive : {}),
@@ -263,6 +281,18 @@ function LogoutIcon() {
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
       <polyline points="16 17 21 12 16 7" />
       <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+
+function ReportIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+      <polyline points="10 9 9 9 8 9" />
     </svg>
   );
 }
