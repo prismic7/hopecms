@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { getUsers, activateUser, deactivateUser, changeUserRole } from '../services/adminService'
-import { getUsers, activateUser, deactivateUser, changeUserRole } from '../services/adminService'
 import { useToast } from '../components/Toast'
 
 export default function AdminPage() {
