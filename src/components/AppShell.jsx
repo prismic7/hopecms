@@ -18,6 +18,7 @@ import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useRights } from "../context/UserRightsContext";
+import { restoreSuperadmin, changeUserRole } from '../services/userService';
 
 const NAV_ITEMS = [
   { label: "Customers", path: "/customers", icon: <PeopleIcon /> },
@@ -32,79 +33,167 @@ const NAV_ITEMS = [
 
 export default function AppShell({ currentUser, onLogout = () => { }, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreError, setRestoreError] = useState(null);
+  const [showDemoteModal, setShowDemoteModal] = useState(false);
+  const [demoting, setDemoting] = useState(false);
+  const [demoteRole, setDemoteRole] = useState('ADMIN');
+  const [demoteError, setDemoteError] = useState(null);
   const navigate = useNavigate();
   const { rights } = useRights();
 
-  const userType = currentUser?.user_type
+  const userType = currentUser?.user_type;
 
-  // Filter nav items based on user_type and rights
+  const showRestoreButton =
+    currentUser?.is_superadmin === true &&
+    currentUser?.user_type !== 'SUPERADMIN';
+
+  const showDemoteButton = currentUser?.user_type === 'SUPERADMIN';
+
   const visibleNavItems = NAV_ITEMS.filter(({ path }) => {
-    if (path === '/deleted-customers') return userType === 'ADMIN' || userType === 'SUPERADMIN'
-    if (path === '/admin') return rights.ADM_USER === 1
-    return true
-  })
+    if (path === '/deleted-customers') return userType === 'ADMIN' || userType === 'SUPERADMIN';
+    if (path === '/admin') return rights.ADM_USER === 1;
+    return true;
+  });
+
+  const handleDemote = async () => {
+    setDemoting(true);
+    setDemoteError(null);
+    try {
+      await changeUserRole(currentUser.userid, demoteRole, currentUser.userid);
+      window.location.reload();
+    } catch (err) {
+      setDemoteError(err.message || 'Role change failed. Please try again.');
+      setDemoting(false);
+    }
+  };
 
   const handleLogout = async () => {
     await onLogout();
-    navigate("/login");
+    navigate('/login');
   };
 
-  const displayName = currentUser?.username || currentUser?.email || "User";
+  const handleRestore = async () => {
+    setRestoring(true);
+    setRestoreError(null);
+    try {
+      await restoreSuperadmin(currentUser.userid);
+      // Force a full page reload so AuthContext re-fetches the updated
+      // user row and rights. This is the simplest way to ensure the
+      // entire app reflects the restored SUPERADMIN state immediately.
+      window.location.reload();
+    } catch (err) {
+      setRestoreError(err.message || 'Restoration failed. Please try again.');
+      setRestoring(false);
+    }
+  };
+
+
+  const displayName = currentUser?.username || currentUser?.email || 'User';
   const initials = displayName
-    .split(" ")
+    .split(' ')
     .map((w) => w[0])
-    .join("")
+    .join('')
     .toUpperCase()
     .slice(0, 2);
 
   return (
     <>
-      {/* ── Responsive styles ─────────────────────────────────────
-          Using a <style> tag because React inline styles do not
-          support @media queries.                                  */}
       <style>{`
-        .cms-sidebar {
-          position: fixed;
-          top: 0;
-          left: 0;
-          height: 100vh;
-          width: 240px;
-          background: linear-gradient(160deg, #0f1f3d 0%, #162744 100%);
-          display: flex;
-          flex-direction: column;
-          z-index: 50;
-          transform: translateX(-100%);
-          transition: transform 0.25s ease;
-        }
-        .cms-sidebar.open {
-          transform: translateX(0);
-        }
-        .cms-main-area {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          min-width: 0;
-          margin-left: 0;
-        }
-        .cms-hamburger {
-          display: flex;
-        }
-        @media (min-width: 768px) {
-          .cms-sidebar {
-            transform: translateX(0) !important;
-          }
-          .cms-main-area {
-            margin-left: 240px;
-          }
-          .cms-hamburger {
-            display: none;
-          }
-        }
-      `}</style>
+                .cms-sidebar {
+                    position: fixed; top: 0; left: 0; height: 100vh; width: 240px;
+                    background: linear-gradient(160deg, #0f1f3d 0%, #162744 100%);
+                    display: flex; flex-direction: column; z-index: 50;
+                    transform: translateX(-100%); transition: transform 0.25s ease;
+                }
+                .cms-sidebar.open { transform: translateX(0); }
+                .cms-main-area {
+                    flex: 1; display: flex; flex-direction: column;
+                    min-width: 0; margin-left: 0;
+                }
+                .cms-hamburger { display: flex; }
+                @media (min-width: 768px) {
+                    .cms-sidebar { transform: translateX(0) !important; }
+                    .cms-main-area { margin-left: 240px; }
+                    .cms-hamburger { display: none; }
+                }
+                .restore-btn {
+                    display: flex; align-items: center; gap: 8px;
+                    margin: 0 12px 8px; padding: 9px 12px;
+                    background: rgba(234, 179, 8, 0.15);
+                    border: 1px solid rgba(234, 179, 8, 0.4);
+                    border-radius: 8px; cursor: pointer;
+                    color: #fbbf24; font-size: 12px; font-weight: 600;
+                    font-family: inherit; transition: background 0.15s;
+                    text-align: left; width: calc(100% - 24px);
+                }
+                .restore-btn:hover { background: rgba(234, 179, 8, 0.25); }
+                .modal-overlay {
+                    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+                    z-index: 100; display: flex; align-items: center;
+                    justify-content: center; padding: 20px;
+                }
+                .modal-box {
+                    background: #1e2d4a; border: 1px solid rgba(255,255,255,0.1);
+                    border-radius: 12px; padding: 28px; width: 100%;
+                    max-width: 400px; color: white;
+                }
+                .modal-title {
+                    font-size: 16px; font-weight: 700; margin: 0 0 8px;
+                    color: #fbbf24;
+                }
+                .modal-body {
+                    font-size: 13.5px; color: rgba(255,255,255,0.7);
+                    line-height: 1.6; margin: 0 0 20px;
+                }
+                .modal-actions {
+                    display: flex; gap: 10px; justify-content: flex-end;
+                }
+                .modal-cancel {
+                    padding: 8px 16px; background: none;
+                    border: 1px solid rgba(255,255,255,0.2);
+                    border-radius: 7px; color: rgba(255,255,255,0.6);
+                    font-size: 13px; cursor: pointer; font-family: inherit;
+                }
+                .modal-cancel:hover { border-color: rgba(255,255,255,0.4); }
+                .modal-confirm {
+                    padding: 8px 16px; background: #ca8a04;
+                    border: none; border-radius: 7px; color: white;
+                    font-size: 13px; font-weight: 600; cursor: pointer;
+                    font-family: inherit; transition: background 0.15s;
+                }
+                .modal-confirm:hover:not(:disabled) { background: #a16207; }
+                .modal-confirm:disabled {
+                    opacity: 0.6; cursor: not-allowed;
+                }
+                .modal-error {
+                    font-size: 12px; color: #f87171;
+                    margin: -12px 0 16px; text-align: right;
+                }
+                .demote-btn {
+                    display: flex; align-items: center; gap: 8px;
+                    margin: 0 12px 8px; padding: 9px 12px;
+                    background: rgba(99, 102, 241, 0.15);
+                    border: 1px solid rgba(99, 102, 241, 0.4);
+                    border-radius: 8px; cursor: pointer;
+                    color: #a5b4fc; font-size: 12px; font-weight: 600;
+                    font-family: inherit; transition: background 0.15s;
+                    text-align: left; width: calc(100% - 24px);
+                }
+                .demote-btn:hover { background: rgba(99, 102, 241, 0.25); }
+                .demote-select {
+                    width: 100%; padding: 8px 10px; border-radius: 7px;
+                    border: 1px solid rgba(255,255,255,0.15);
+                    background: rgba(255,255,255,0.08); color: white;
+                    font-size: 13px; font-family: inherit; margin-bottom: 16px;
+                    outline: none; cursor: pointer;
+                }
+                .demote-select option { background: #1e2d4a; color: white; }
+                .demote-select:focus { border-color: rgba(99,102,241,0.6); }
+            `}</style>
 
       <div style={styles.root}>
-
-        {/* Mobile overlay */}
         {sidebarOpen && (
           <div
             style={styles.overlay}
@@ -113,8 +202,8 @@ export default function AppShell({ currentUser, onLogout = () => { }, children }
           />
         )}
 
-        {/* ── Sidebar ────────────────────────────────────────────── */}
-        <aside className={`cms-sidebar${sidebarOpen ? " open" : ""}`}>
+        {/* ── Sidebar ─────────────────────────────────────────── */}
+        <aside className={`cms-sidebar${sidebarOpen ? ' open' : ''}`}>
 
           {/* Brand */}
           <div style={styles.brand}>
@@ -131,7 +220,7 @@ export default function AppShell({ currentUser, onLogout = () => { }, children }
             </div>
           </div>
 
-          {/* Nav links */}
+          {/* Nav */}
           <nav style={styles.nav} aria-label="Main navigation">
             <p style={styles.navSection}>Main Menu</p>
             {visibleNavItems.filter(i => !i.section).map(({ label, path, icon, title }) => (
@@ -166,20 +255,50 @@ export default function AppShell({ currentUser, onLogout = () => { }, children }
             ))}
           </nav>
 
-          {/* User card at bottom */}
+          {/* ── Change Role button — SUPERADMIN self-demotion ── */}
+          {showDemoteButton && (
+            <button
+              className="demote-btn"
+              onClick={() => {
+                setDemoteError(null);
+                setDemoteRole('ADMIN');
+                setShowDemoteModal(true);
+              }}
+              title="Change your current role"
+            >
+              <RoleIcon />
+              Change My Role
+            </button>
+          )}
+
+          {/* ── Restore SUPERADMIN button ────────────────────── */}
+          {/* Visible only when is_superadmin = TRUE and currently demoted */}
+          {showRestoreButton && (
+            <button
+              className="restore-btn"
+              onClick={() => {
+                setRestoreError(null);
+                setShowRestoreModal(true);
+              }}
+              title="Restore your SUPERADMIN access"
+            >
+              <RestoreIcon />
+              Restore SUPERADMIN
+            </button>
+          )}
+
+          {/* User card */}
           <div style={styles.userCard}>
             <div style={styles.avatar}>{initials}</div>
             <div style={styles.userInfo}>
               <p style={styles.userName}>{displayName}</p>
-              <p style={styles.userType}>{currentUser?.user_type || "USER"}</p>
+              <p style={styles.userType}>{currentUser?.user_type || 'USER'}</p>
             </div>
           </div>
         </aside>
 
-        {/* ── Main area ──────────────────────────────────────────── */}
+        {/* ── Main area ────────────────────────────────────────── */}
         <div className="cms-main-area">
-
-          {/* Top navbar */}
           <header style={styles.navbar}>
             <button
               className="cms-hamburger"
@@ -189,11 +308,9 @@ export default function AppShell({ currentUser, onLogout = () => { }, children }
             >
               <HamburgerIcon />
             </button>
-
             <div style={styles.navLeft}>
               <span style={styles.navBreadcrumb}>Hope, Inc. CMS</span>
             </div>
-
             <div style={styles.navRight}>
               <div style={styles.navUser}>
                 <div style={styles.navAvatar}>{initials}</div>
@@ -209,14 +326,131 @@ export default function AppShell({ currentUser, onLogout = () => { }, children }
               </button>
             </div>
           </header>
-
-          {/* Page content */}
-          <main style={styles.content}>
-            {children}
-          </main>
+          <main style={styles.content}>{children}</main>
         </div>
       </div>
+
+      {/* ── Restore SUPERADMIN Modal ─────────────────────────────── */}
+      {showRestoreModal && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <p className="modal-title">⚠ Restore SUPERADMIN Access</p>
+            <p className="modal-body">
+              Your account (<strong>{displayName}</strong>) was originally
+              a SUPERADMIN. Restoring will immediately grant you full
+              SUPERADMIN rights and reload the application.
+              <br /><br />
+              Current role: <strong>{currentUser?.user_type}</strong>
+              <br />
+              Restoring to: <strong>SUPERADMIN</strong>
+            </p>
+            {restoreError && (
+              <p className="modal-error">{restoreError}</p>
+            )}
+            <div className="modal-actions">
+              <button
+                className="modal-cancel"
+                onClick={() => {
+                  setShowRestoreModal(false);
+                  setRestoreError(null);
+                }}
+                disabled={restoring}
+              >
+                Cancel
+              </button>
+              <button
+                className="modal-confirm"
+                onClick={handleRestore}
+                disabled={restoring}
+              >
+                {restoring ? 'Restoring...' : 'Yes, Restore SUPERADMIN'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Change Role Modal — SUPERADMIN self-demotion ──────────── */}
+      {showDemoteModal && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <p className="modal-title" style={{ color: '#a5b4fc' }}>
+              ⚙ Change My Role
+            </p>
+            <p className="modal-body">
+              You are currently <strong>SUPERADMIN</strong>. Changing your
+              role will update your access rights immediately and reload
+              the application.
+              <br /><br />
+              Your <strong>is_superadmin</strong> flag stays permanently —
+              you can restore SUPERADMIN access at any time via the
+              Restore button.
+            </p>
+            <select
+              className="demote-select"
+              value={demoteRole}
+              onChange={(e) => setDemoteRole(e.target.value)}
+              disabled={demoting}
+            >
+              <option value="ADMIN">ADMIN — Can add/edit customers, manage users</option>
+              <option value="USER">USER — Read-only access</option>
+            </select>
+            {demoteError && (
+              <p className="modal-error">{demoteError}</p>
+            )}
+            <div className="modal-actions">
+              <button
+                className="modal-cancel"
+                onClick={() => {
+                  setShowDemoteModal(false);
+                  setDemoteError(null);
+                }}
+                disabled={demoting}
+              >
+                Cancel
+              </button>
+              <button
+                className="modal-confirm"
+                style={{ background: '#4f46e5' }}
+                onClick={handleDemote}
+                disabled={demoting}
+              >
+                {demoting ? 'Changing...' : `Switch to ${demoteRole}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
+  );
+}
+
+// ── Role icon ─────────────────────────────────────────────────────
+function RoleIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+// ── Restore icon ───────────────────────────────────────────────────
+function RestoreIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10" />
+      <path d="M16 12l-4-4-4 4" />
+      <path d="M12 8v8" />
+      <path d="M22 22l-4-4" />
+      <path d="M18 22v-4h4" />
+    </svg>
   );
 }
 

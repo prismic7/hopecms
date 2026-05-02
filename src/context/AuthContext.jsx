@@ -45,7 +45,6 @@ export function AuthProvider({ children }) {
     // SIGNED_IN is handled explicitly in signInWithEmail and signInWithGoogle
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('[onAuthStateChange] event:', event)
         if (event === 'SIGNED_OUT') {
           setCurrentUser(null)
           setAuthError(null)
