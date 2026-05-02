@@ -125,7 +125,7 @@ export default function ProductRevenuePage() {
           </div>
 
           {loading ? (
-            <table className="ap-table">
+            <table className="pr-table">
               <tbody>
                 <SkeletonTable rows={5} cols={5} />
               </tbody>

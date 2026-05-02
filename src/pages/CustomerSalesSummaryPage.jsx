@@ -55,6 +55,7 @@ export default function CustomerSalesSummaryPage() {
     }
     fetchData()
   }, [])
+
   function handleSort(field) {
     if (sortField === field) {
       setSortAsc(!sortAsc)

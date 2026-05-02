@@ -47,6 +47,10 @@ export default function AdminPage() {
     .ap-btn-disabled { padding: 5px 12px; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 12px; font-weight: 500; cursor: not-allowed; background: #f9fafb; color: #9ca3af; }
     .ap-empty { text-align: center; padding: 56px 24px; color: #9ca3af; font-size: 13px; }
     .ap-footer { padding: 10px 14px; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af; }
+    @media (max-width: 640px) {
+      .ap-page { padding: 16px; }
+      .ap-table th:nth-child(1), .ap-table td:nth-child(1) { display: none; }
+    }
   `
 
   async function fetchUsers() {
@@ -94,7 +98,11 @@ export default function AdminPage() {
   )
 
   function TypePill({ type }) {
-    const cls = type === 'SUPERADMIN' ? 'ap-type-super' : type === 'ADMIN' ? 'ap-type-admin' : 'ap-type-user'
+    const cls = type === 'SUPERADMIN'
+      ? 'ap-type-super'
+      : type === 'ADMIN'
+        ? 'ap-type-admin'
+        : 'ap-type-user'
     return <span className={`ap-type-pill ${cls}`}>{type}</span>
   }
 

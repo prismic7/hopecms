@@ -24,10 +24,10 @@ const NAV_ITEMS = [
   { label: "Sales", path: "/sales", icon: <SalesIcon /> },
   { label: "Products", path: "/products", icon: <ProductIcon /> },
   { label: "Deleted Customers", path: "/deleted-customers", icon: <TrashIcon /> },
-  { label: "Admin", path: "/admin", icon: <AdminIcon />, title: "Admin Module — SUPERADMIN only" },
   { label: "Customer Sales Summary", path: "/reports/customer-sales", icon: <ReportIcon />, section: "Reports" },
   { label: "Top Customers", path: "/reports/top-customers", icon: <ReportIcon />, section: "Reports" },
   { label: "Product Revenue", path: "/reports/product-revenue", icon: <ReportIcon />, section: "Reports" },
+  { label: "Admin", path: "/admin", icon: <AdminIcon />, title: "Admin Module — SUPERADMIN only" },
 ];
 
 export default function AppShell({ currentUser, onLogout = () => { }, children }) {
