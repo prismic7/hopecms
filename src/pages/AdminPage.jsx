@@ -14,88 +14,166 @@ export default function AdminPage() {
   const [search, setSearch] = useState('')
   const { showToast, ToastComponent } = useToast()
 
-  // Confirm modal state
+  const [mounted, setMounted] = useState(false)
+
+  // Confirm modal state[cite: 7]
   const [pendingRoleChange, setPendingRoleChange] = useState(null)
   // { userId, username, currentRole, newRole }
 
   const isSuperAdmin = currentUser?.user_type === 'SUPERADMIN'
 
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 30)
+    return () => clearTimeout(t)
+  }, [])
+
   const css = `
-    .ap-page { padding: 28px 32px; max-width: 1100px; margin: 0 auto; font-family: sans-serif; }
-    .ap-topbar { margin-bottom: 24px; }
-    .ap-title { font-size: 22px; font-weight: 600; margin: 0 0 4px; color: #111827; }
-    .ap-sub { font-size: 13px; color: #6b7280; margin: 0; }
-    .ap-notice { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; margin-bottom: 20px; font-size: 13px; color: #1e40af; }
-    .ap-controls { margin-bottom: 20px; }
-    .ap-search { width: 100%; box-sizing: border-box; padding: 9px 14px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; color: #111827; outline: none; }
-    .ap-search:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-    .ap-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
-    .ap-card-header { padding: 14px 18px; border-bottom: 1px solid #f3f4f6; background: #f9fafb; display: flex; justify-content: space-between; align-items: center; }
-    .ap-card-title { font-size: 13px; font-weight: 600; color: #374151; margin: 0; }
-    .ap-card-count { font-size: 12px; color: #9ca3af; }
-    .ap-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .ap-table th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; color: #6b7280; border-bottom: 1px solid #f3f4f6; text-transform: uppercase; letter-spacing: 0.05em; background: #f9fafb; white-space: nowrap; }
-    .ap-table td { padding: 11px 14px; border-bottom: 1px solid #f9fafb; color: #111827; vertical-align: middle; }
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+    .ap-root {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      padding: 28px 32px;
+      max-width: 1200px;
+      margin: 0 auto;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.45s cubic-bezier(0.22,1,0.36,1),
+                  transform 0.45s cubic-bezier(0.22,1,0.36,1);
+    }
+    .ap-root.mounted { opacity: 1; transform: translateY(0); }
+
+    /* ── Header ──────────────────────────────────────────── */
+    .ap-header {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 20px;
+    }
+    .ap-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 26px; font-weight: 700;
+      color: #09090b; letter-spacing: -0.5px;
+      line-height: 1.1; margin: 0 0 6px;
+    }
+    .ap-subtitle { font-size: 13px; color: #71717a; font-weight: 400; margin: 0; }
+
+    .ap-notice {
+      background: #fafafa; border: 1px solid #e4e4e7; border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 24px; font-size: 13px; color: #71717a;
+      display: flex; align-items: flex-start; gap: 10px; line-height: 1.5;
+    }
+
+    /* ── Toolbar ─────────────────────────────────────────── */
+    .ap-toolbar {
+      display: flex; gap: 10px; margin-bottom: 24px; align-items: center;
+    }
+    .ap-search-wrap {
+      position: relative; flex: 1; max-width: 400px;
+    }
+    .ap-search-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: #a1a1aa; pointer-events: none; display: flex; align-items: center;
+    }
+    .ap-search {
+      width: 100%; height: 38px; padding: 0 12px 0 36px;
+      background: white; border: 1px solid #e4e4e7; border-radius: 9px;
+      font-size: 13.5px; color: #09090b; outline: none;
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      box-sizing: border-box;
+    }
+    .ap-search::placeholder { color: #a1a1aa; }
+    .ap-search:focus { border-color: #09090b; box-shadow: 0 0 0 3px rgba(9,9,11,0.06); }
+
+    /* ── Card ────────────────────────────────────────────── */
+    .ap-card { background: white; border: 1px solid #e4e4e7; border-radius: 14px; overflow: hidden; }
+    .ap-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; border-bottom: 1px solid #f4f4f5; background: #fafafa;
+    }
+    .ap-card-title { font-size: 13px; font-weight: 600; color: #09090b; margin: 0; }
+    .ap-card-count { font-size: 12px; color: #a1a1aa; }
+
+    /* ── Table ───────────────────────────────────────────── */
+    .ap-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    .ap-table thead { background: #fafafa; }
+    .ap-table th {
+      padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 600;
+      color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.6px;
+      border-bottom: 1px solid #f4f4f5; white-space: nowrap;
+    }
+    .ap-table td { padding: 12px 16px; border-bottom: 1px solid #f4f4f5; color: #09090b; vertical-align: middle; }
     .ap-table tr:last-child td { border-bottom: none; }
-    .ap-table tbody tr:hover td { background: #f9fafb; }
-    .ap-table tr.disabled-row td { opacity: 0.5; }
-    .ap-mono { font-family: monospace; font-size: 12px; color: #6b7280; }
-    .ap-badge-active { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 9999px; font-size: 11px; font-weight: 600; background: #d1fae5; color: #065f46; }
-    .ap-badge-inactive { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 9999px; font-size: 11px; font-weight: 600; background: #fee2e2; color: #991b1b; }
-    .ap-badge-dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
-    .ap-type-pill { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
-    .ap-type-super { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-    .ap-type-admin { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
-    .ap-type-user { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
-    .ap-btn-activate { padding: 5px 12px; border-radius: 6px; border: 1px solid #bbf7d0; font-size: 12px; font-weight: 500; cursor: pointer; background: #f0fdf4; color: #166534; margin-right: 6px; }
-    .ap-btn-activate:hover { background: #dcfce7; }
-    .ap-btn-deactivate { padding: 5px 12px; border-radius: 6px; border: 1px solid #fecaca; font-size: 12px; font-weight: 500; cursor: pointer; background: #fff; color: #dc2626; }
+    .ap-table tbody tr { transition: background 0.1s ease; }
+    .ap-table tbody tr:hover td { background: #fafafa; }
+    .ap-table tr.disabled-row td { opacity: 0.45; }
+
+    .ap-mono { font-family: 'Courier New', monospace; font-size: 12px; color: #71717a; letter-spacing: 0.3px; }
+    
+    .ap-badge-active, .ap-badge-inactive {
+      display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px;
+      border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid transparent;
+    }
+    .ap-badge-active { background: #f0fdf4; color: #166534; border-color: #dcfce7; }
+    .ap-badge-inactive { background: #fef2f2; color: #991b1b; border-color: #fee2e2; }
+    .ap-badge-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+    .ap-type-pill { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid #e4e4e7; }
+    .ap-type-super { background: #18181b; color: #ffffff; border-color: #18181b; }
+    .ap-type-admin { background: #f4f4f5; color: #18181b; }
+    .ap-type-user { background: white; color: #71717a; }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .ap-btn {
+      height: 30px; padding: 0 14px; border-radius: 7px;
+      border: 1px solid #e4e4e7; font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: all 0.15s ease; font-family: inherit;
+    }
+    .ap-btn-activate { background: #09090b; color: white; border-color: #09090b; margin-right: 8px; }
+    .ap-btn-activate:hover { opacity: 0.85; }
+    .ap-btn-deactivate { background: white; color: #ef4444; border-color: #fee2e2; }
     .ap-btn-deactivate:hover { background: #fef2f2; }
-    .ap-btn-disabled { padding: 5px 12px; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 12px; font-weight: 500; cursor: not-allowed; background: #f9fafb; color: #9ca3af; }
-    .ap-empty { text-align: center; padding: 56px 24px; color: #9ca3af; font-size: 13px; }
-    .ap-footer { padding: 10px 14px; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af; }
+    .ap-btn-disabled { background: #f4f4f5; color: #a1a1aa; border-color: #e4e4e7; cursor: not-allowed; }
 
     /* Role dropdown */
     .ap-role-wrap { display: flex; align-items: center; gap: 8px; }
     .ap-role-select {
-      padding: 3px 6px; border-radius: 6px; font-size: 11px; font-weight: 600;
-      border: 1px solid #e5e7eb; cursor: pointer; outline: none;
-      background: #f9fafb; color: #374151;
+      height: 28px; padding: 0 6px; border-radius: 6px; font-size: 11px; font-weight: 600;
+      border: 1px solid #e4e4e7; cursor: pointer; outline: none;
+      background: white; color: #09090b; font-family: inherit;
       transition: border-color 0.15s;
     }
-    .ap-role-select:focus { border-color: #93c5fd; }
-    .ap-role-select:disabled { opacity: 0.5; cursor: not-allowed; }
-    .ap-role-saving { font-size: 11px; color: #6b7280; }
+    .ap-role-select:focus { border-color: #09090b; }
+    .ap-role-saving { font-size: 11px; color: #a1a1aa; }
 
-    /* Confirm modal */
+    /* ── Modal ───────────────────────────────────────────── */
     .ap-modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-      z-index: 200; display: flex; align-items: center;
-      justify-content: center; padding: 20px;
+      position: fixed; inset: 0; background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(4px); z-index: 200; display: flex;
+      align-items: center; justify-content: center; padding: 20px;
     }
     .ap-modal {
-      background: white; border-radius: 12px; padding: 28px;
-      width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      background: white; border-radius: 16px; padding: 32px;
+      width: 100%; max-width: 400px; border: 1px solid #e4e4e7;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.08);
     }
-    .ap-modal-title { font-size: 15px; font-weight: 700; margin: 0 0 8px; color: #111827; }
-    .ap-modal-body { font-size: 13px; color: #6b7280; line-height: 1.6; margin: 0 0 20px; }
-    .ap-modal-body strong { color: #111827; }
-    .ap-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
-    .ap-modal-cancel {
-      padding: 8px 16px; background: white; border: 1px solid #e5e7eb;
-      border-radius: 7px; font-size: 13px; cursor: pointer; color: #374151;
+    .ap-modal-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin: 0 0 12px; color: #09090b; }
+    .ap-modal-body { font-size: 13.5px; color: #71717a; line-height: 1.6; margin: 0 0 24px; }
+    .ap-modal-body strong { color: #09090b; font-weight: 600; }
+    .ap-modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+    .ap-modal-btn {
+      height: 38px; padding: 0 18px; border-radius: 9px; font-size: 13px;
+      font-weight: 500; cursor: pointer; transition: all 0.15s ease;
+      font-family: 'DM Sans', sans-serif;
     }
-    .ap-modal-cancel:hover { background: #f9fafb; }
-    .ap-modal-confirm {
-      padding: 8px 16px; background: #2563eb; border: none;
-      border-radius: 7px; font-size: 13px; font-weight: 600;
-      cursor: pointer; color: white; transition: background 0.15s;
-    }
-    .ap-modal-confirm:hover:not(:disabled) { background: #1d4ed8; }
-    .ap-modal-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+    .ap-modal-cancel { background: white; border: 1px solid #e4e4e7; color: #71717a; }
+    .ap-modal-cancel:hover { background: #f4f4f5; }
+    .ap-modal-confirm { background: #09090b; border: none; color: white; }
+    .ap-modal-confirm:hover { opacity: 0.85; }
 
-    @media (max-width: 640px) {
-      .ap-page { padding: 16px; }
+    .ap-empty { text-align: center; padding: 64px 24px; color: #a1a1aa; font-size: 13.5px; }
+    .ap-footer { padding: 12px 20px; border-top: 1px solid #f4f4f5; font-size: 12px; color: #a1a1aa; }
+
+    @media (max-width: 768px) {
       .ap-table th:nth-child(1), .ap-table td:nth-child(1) { display: none; }
     }
   `
@@ -139,9 +217,8 @@ export default function AdminPage() {
     }
   }
 
-  // Called when SUPERADMIN selects a new role from the dropdown
   function handleRoleDropdownChange(user, newRole) {
-    if (newRole === user.user_type) return // no change
+    if (newRole === user.user_type) return
     setPendingRoleChange({
       userId: user.userid,
       username: user.username,
@@ -150,7 +227,6 @@ export default function AdminPage() {
     })
   }
 
-  // Called when SUPERADMIN confirms the role change in the modal
   async function handleRoleConfirm() {
     if (!pendingRoleChange) return
     const { userId, newRole } = pendingRoleChange
@@ -184,26 +260,38 @@ export default function AdminPage() {
     <>
       {ToastComponent}
       <style>{css}</style>
-      <div className="ap-page">
+      <div className={`ap-root ${mounted ? 'mounted' : ''}`}>
 
-        <div className="ap-topbar">
+        <div className="ap-header">
           <h1 className="ap-title">User Management</h1>
-          <p className="ap-sub">Activate, deactivate, and manage roles of CMS user accounts</p>
+          <p className="ap-subtitle">Activate, deactivate, and manage roles of CMS user accounts</p>
         </div>
 
         <div className="ap-notice">
-          SUPERADMIN accounts cannot be modified. Only SUPERADMIN can change user roles.
-          Activate a new user after they register to grant them access.
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+             <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span>
+            SUPERADMIN accounts are protected and cannot be modified. Only SUPERADMIN can reassign user roles. 
+            New registrations require manual activation before system access is granted[cite: 7].
+          </span>
         </div>
 
-        <div className="ap-controls">
-          <input
-            className="ap-search"
-            type="text"
-            placeholder="Search by username or user ID..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="ap-toolbar">
+          <div className="ap-search-wrap">
+            <span className="ap-search-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
+            <input
+              className="ap-search"
+              type="text"
+              placeholder="Search by username or user ID..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="ap-card">
@@ -217,11 +305,9 @@ export default function AdminPage() {
           </div>
 
           {loading ? (
-            <table className="ap-table">
-              <tbody>
-                <SkeletonTable rows={5} cols={5} />
-              </tbody>
-            </table>
+            <div style={{ padding: '0 20px 20px' }}>
+              <SkeletonTable rows={5} cols={5} />
+            </div>
           ) : error ? (
             <div className="ap-empty" style={{ color: '#dc2626' }}>{error}</div>
           ) : filtered.length === 0 ? (
@@ -248,14 +334,8 @@ export default function AdminPage() {
 
                     return (
                       <tr key={u.userid} className={isDisabled ? 'disabled-row' : ''}>
-
-                        {/* User ID */}
                         <td className="ap-mono">{u.userid}</td>
-
-                        {/* Username */}
-                        <td style={{ fontWeight: 500 }}>{u.username || '-'}</td>
-
-                        {/* Role — dropdown for SUPERADMIN caller, pill for everyone else */}
+                        <td style={{ fontWeight: 600 }}>{u.username || '-'}</td>
                         <td>
                           {isSuperAdmin && !isSA && !isCurrentUser ? (
                             <div className="ap-role-wrap">
@@ -268,42 +348,28 @@ export default function AdminPage() {
                                 <option value="USER">USER</option>
                                 <option value="ADMIN">ADMIN</option>
                               </select>
-                              {isRoleChanging && (
-                                <span className="ap-role-saving">Saving...</span>
-                              )}
+                              {isRoleChanging && <span className="ap-role-saving">...</span>}
                             </div>
                           ) : (
                             <TypePill type={u.user_type} />
                           )}
                         </td>
-
-                        {/* Status */}
                         <td>
                           <span className={isActive ? 'ap-badge-active' : 'ap-badge-inactive'}>
-                            <span
-                              className="ap-badge-dot"
-                              style={{ background: isActive ? '#059669' : '#dc2626' }}
-                            />
+                            <span className="ap-badge-dot" style={{ background: isActive ? '#059669' : '#dc2626' }} />
                             {isActive ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-
-                        {/* Actions */}
                         <td>
                           {isDisabled ? (
-                            <span
-                              className="ap-btn-disabled"
-                              title={isSA
-                                ? 'SUPERADMIN accounts cannot be modified'
-                                : 'You cannot modify your own account here'}
-                            >
+                            <span className="ap-btn ap-btn-disabled">
                               {isSA ? 'Protected' : 'Current User'}
                             </span>
                           ) : (
                             <>
                               {!isActive && (
                                 <button
-                                  className="ap-btn-activate"
+                                  className="ap-btn ap-btn-activate"
                                   disabled={actionLoading === u.userid}
                                   onClick={() => handleActivate(u.userid)}
                                 >
@@ -312,7 +378,7 @@ export default function AdminPage() {
                               )}
                               {isActive && (
                                 <button
-                                  className="ap-btn-deactivate"
+                                  className="ap-btn ap-btn-deactivate"
                                   disabled={actionLoading === u.userid}
                                   onClick={() => handleDeactivate(u.userid)}
                                 >
@@ -322,22 +388,19 @@ export default function AdminPage() {
                             </>
                           )}
                         </td>
-
                       </tr>
                     )
                   })}
                 </tbody>
               </table>
               <div className="ap-footer">
-                Showing {filtered.length} of {users.length} users
+                Showing {filtered.length} of {users.length} registered accounts[cite: 7]
               </div>
             </>
           )}
         </div>
-
       </div>
 
-      {/* ── Role Change Confirm Modal ──────────────────────────── */}
       {pendingRoleChange && (
         <div className="ap-modal-overlay">
           <div className="ap-modal">
@@ -347,20 +410,14 @@ export default function AdminPage() {
               <strong>{pendingRoleChange.currentRole}</strong> to{' '}
               <strong>{pendingRoleChange.newRole}</strong>?
               <br /><br />
-              Their access rights will be updated automatically.
+              New permissions will be applied immediately[cite: 7].
             </p>
             <div className="ap-modal-actions">
-              <button
-                className="ap-modal-cancel"
-                onClick={() => setPendingRoleChange(null)}
-              >
+              <button className="ap-modal-btn ap-modal-cancel" onClick={() => setPendingRoleChange(null)}>
                 Cancel
               </button>
-              <button
-                className="ap-modal-confirm"
-                onClick={handleRoleConfirm}
-              >
-                Confirm
+              <button className="ap-modal-btn ap-modal-confirm" onClick={handleRoleConfirm}>
+                Confirm Change
               </button>
             </div>
           </div>

@@ -1,72 +1,56 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 
 export default function RegisterPage() {
-  // ── Fix: use the correct names that AuthContext actually exports ────────────
-  // OLD (broken): const { signUp, signInWithOAuth, loading, error: authError } = useAuth()
-  //   • signUp         → does not exist in AuthContext
-  //   • signInWithOAuth → does not exist; the correct name is signInWithGoogle
-  //   • error          → does not exist; context exports authError directly
   const {
-    signUpWithEmail,    // email registration  ← was "signUp"       (did not exist)
-    signInWithGoogle,   // Google OAuth        ← was "signInWithOAuth" (did not exist)
+    signUpWithEmail,
+    signInWithGoogle,
     loading,
-    authError,          // error state         ← was "error: authError" (wrong key)
-    registrationSent,   // true after Supabase sends the confirmation email
+    authError,
+    registrationSent,
     clearError,
   } = useAuth();
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
+  const [mounted, setMounted] = useState(false);
+  const [step, setStep] = useState(1); // 1 = form, 2 = success
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 50);
+    return () => clearTimeout(t);
+  }, []);
+
   const onEmailRegister = async (firstName, lastName, username, email, password) => {
     clearError();
     await signUpWithEmail(email, password, { firstName, lastName, username });
   };
 
-  // Google OAuth registration is the same flow as Google login —
-  // the provision_new_user() trigger creates a USER/INACTIVE row on first sign-in.
   const onGoogleRegister = async () => {
     clearError();
-    await signInWithGoogle();   // ← was signInWithOAuth() — now correct
+    await signInWithGoogle();
   };
 
-  // ── Local form state ──────────────────────────────────────────────────────
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    username: "",
-    email: "",
-    password: "",
-  });
-  const [errors,  setErrors]  = useState({});
+  const [form, setForm] = useState({ firstName: "", lastName: "", username: "", email: "", password: "" });
+  const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [sentEmail, setSentEmail] = useState("");
 
-  // ── Validation ────────────────────────────────────────────────────────────
   const validate = (f) => {
     const e = {};
-    if (!f.firstName.trim())
-      e.firstName = "First name is required.";
-    if (!f.lastName.trim())
-      e.lastName = "Last name is required.";
-    if (!f.username.trim())
-      e.username = "Username is required.";
-    else if (f.username.trim().length < 3)
-      e.username = "Username must be at least 3 characters.";
-    else if (/\s/.test(f.username))
-      e.username = "Username cannot contain spaces.";
-    if (!f.email)
-      e.email = "Email is required.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email))
-      e.email = "Enter a valid email address.";
-    if (!f.password)
-      e.password = "Password is required.";
-    else if (f.password.length < 6)
-      e.password = "Password must be at least 6 characters.";
+    if (!f.firstName.trim()) e.firstName = "Required.";
+    if (!f.lastName.trim()) e.lastName = "Required.";
+    if (!f.username.trim()) e.username = "Required.";
+    else if (f.username.trim().length < 3) e.username = "Min 3 characters.";
+    else if (/\s/.test(f.username)) e.username = "No spaces allowed.";
+    if (!f.email) e.email = "Required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = "Enter a valid email.";
+    if (!f.password) e.password = "Required.";
+    else if (f.password.length < 6) e.password = "Min 6 characters.";
     return e;
   };
 
   const handleBlur = (field) => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-    setErrors(validate({ ...form }));
+    setTouched(prev => ({ ...prev, [field]: true }));
+    setErrors(validate(form));
   };
 
   const handleChange = (field, value) => {
@@ -75,220 +59,471 @@ export default function RegisterPage() {
     if (touched[field]) setErrors(validate(next));
   };
 
-  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setTouched({
-      firstName: true, lastName: true, username: true,
-      email: true, password: true,
-    });
-    const validationErrors = validate(form);
-    setErrors(validationErrors);
-    if (Object.keys(validationErrors).length > 0) return;
-    await onEmailRegister(
-      form.firstName, form.lastName, form.username,
-      form.email, form.password
-    );
+    const allTouched = { firstName: true, lastName: true, username: true, email: true, password: true };
+    setTouched(allTouched);
+    const ve = validate(form);
+    setErrors(ve);
+    if (Object.keys(ve).length > 0) return;
+    setSentEmail(form.email);
+    await onEmailRegister(form.firstName, form.lastName, form.username, form.email, form.password);
   };
 
-  // ── Success state — email confirmation sent ───────────────────────────────
-  if (registrationSent) {
-    return (
-      <div style={styles.root}>
-        <aside style={styles.brand}>
-          <div style={styles.brandContent}>
-            <div style={styles.logoMark}>
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.15)" />
-                <path d="M8 16 L16 8 L24 16 L16 24 Z" fill="white" />
-                <circle cx="16" cy="16" r="4" fill="rgba(255,255,255,0.5)" />
+  // Switch to success view after registrationSent
+  useEffect(() => {
+    if (registrationSent) setStep(2);
+  }, [registrationSent]);
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        .rp-root {
+          min-height: 100vh;
+          background: #0a0a0a;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'DM Sans', system-ui, sans-serif;
+          position: relative;
+          overflow: hidden;
+          padding: 24px 16px;
+        }
+
+        .rp-root::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background-image:
+            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+          background-size: 60px 60px;
+          animation: rp-grid-drift 20s linear infinite;
+        }
+        @keyframes rp-grid-drift {
+          0%   { transform: translate(0, 0); }
+          100% { transform: translate(60px, 60px); }
+        }
+
+        .rp-blob {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(80px);
+          pointer-events: none;
+        }
+        .rp-blob-1 {
+          width: 600px; height: 600px;
+          background: rgba(255,255,255,0.03);
+          top: -250px; right: -200px;
+          animation: rp-blob 10s ease-in-out infinite;
+        }
+        .rp-blob-2 {
+          width: 400px; height: 400px;
+          background: rgba(255,255,255,0.03);
+          bottom: -150px; left: -100px;
+          animation: rp-blob 10s ease-in-out infinite;
+          animation-delay: -5s;
+        }
+        @keyframes rp-blob {
+          0%, 100% { transform: scale(1) translate(0, 0); }
+          50%       { transform: scale(1.08) translate(-15px, 15px); }
+        }
+
+        .rp-card {
+          position: relative;
+          z-index: 10;
+          width: 100%;
+          max-width: 480px;
+          padding: 48px 44px;
+          background: rgba(255, 255, 255, 0.08);
+          backdrop-filter: blur(32px) saturate(200%);
+          -webkit-backdrop-filter: blur(32px) saturate(200%);
+          border: 1px solid rgba(255, 255, 255, 0.13);
+          border-radius: 24px;
+          box-shadow:
+            0 1px 0 rgba(255,255,255,0.15) inset,
+            0 32px 80px rgba(0,0,0,0.6),
+            0 8px 32px rgba(0,0,0,0.3);
+
+          opacity: 0;
+          transform: translateY(24px) scale(0.98);
+          transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+                      transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .rp-card.mounted { opacity: 1; transform: translateY(0) scale(1); }
+
+        /* Brand */
+        .rp-brand {
+          display: flex; align-items: center; gap: 12px;
+          margin-bottom: 32px;
+          opacity: 0; transform: translateY(8px);
+          transition: opacity 0.5s 0.15s ease, transform 0.5s 0.15s ease;
+        }
+        .rp-card.mounted .rp-brand { opacity: 1; transform: translateY(0); }
+
+        .rp-logo-mark {
+          width: 36px; height: 36px;
+          background: white; border-radius: 10px;
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .rp-logo-mark svg { width: 20px; height: 20px; }
+        .rp-brand-name {
+          font-family: 'Syne', sans-serif;
+          font-size: 15px; font-weight: 700; color: white; letter-spacing: -0.3px;
+        }
+        .rp-brand-sub {
+          font-size: 11px; color: rgba(255,255,255,0.35);
+          letter-spacing: 1.5px; text-transform: uppercase;
+        }
+
+        /* Heading */
+        .rp-heading {
+          margin-bottom: 28px;
+          opacity: 0; transform: translateY(8px);
+          transition: opacity 0.5s 0.2s ease, transform 0.5s 0.2s ease;
+        }
+        .rp-card.mounted .rp-heading { opacity: 1; transform: translateY(0); }
+        .rp-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 24px; font-weight: 700; color: white;
+          letter-spacing: -0.5px; line-height: 1.2;
+        }
+        .rp-subtitle { font-size: 13px; color: rgba(255,255,255,0.35); margin-top: 6px; font-weight: 300; }
+
+        /* Notice pill */
+        .rp-notice {
+          display: inline-flex; align-items: center; gap: 8px;
+          background: rgba(255,255,255,0.07);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 100px;
+          padding: 6px 14px;
+          font-size: 12px; color: rgba(255,255,255,0.45);
+          margin-bottom: 24px;
+          opacity: 0; transition: opacity 0.5s 0.25s ease;
+        }
+        .rp-card.mounted .rp-notice { opacity: 1; }
+        .rp-notice-dot {
+          width: 6px; height: 6px; border-radius: 50%;
+          background: rgba(255,255,255,0.3); flex-shrink: 0;
+        }
+
+        /* Error banner */
+        .rp-error {
+          display: flex; align-items: flex-start; gap: 10px;
+          background: rgba(220,38,38,0.12);
+          border: 1px solid rgba(220,38,38,0.3);
+          border-radius: 12px; padding: 12px 14px; margin-bottom: 16px;
+          animation: rp-error-in 0.3s ease;
+        }
+        @keyframes rp-error-in {
+          from { opacity: 0; transform: translateY(-4px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .rp-error-icon {
+          width: 18px; height: 18px; border-radius: 50%;
+          background: rgba(220,38,38,0.25); color: #f87171;
+          font-size: 11px; font-weight: 700;
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0; margin-top: 1px;
+        }
+        .rp-error-text { font-size: 13px; color: #fca5a5; line-height: 1.5; }
+
+        /* Form */
+        .rp-form {
+          display: flex; flex-direction: column; gap: 14px;
+          opacity: 0; transform: translateY(8px);
+          transition: opacity 0.5s 0.3s ease, transform 0.5s 0.3s ease;
+        }
+        .rp-card.mounted .rp-form { opacity: 1; transform: translateY(0); }
+
+        .rp-row { display: flex; gap: 12px; }
+        .rp-field { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+
+        .rp-label {
+          font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.4);
+          letter-spacing: 0.7px; text-transform: uppercase;
+        }
+
+        .rp-input {
+          height: 44px; padding: 0 14px;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 10px;
+          font-size: 14px; color: white; outline: none; width: 100%;
+          font-family: 'DM Sans', sans-serif;
+          transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+        .rp-input::placeholder { color: rgba(255,255,255,0.18); }
+        .rp-input:hover { border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.08); }
+        .rp-input:focus {
+          border-color: rgba(255,255,255,0.35);
+          background: rgba(255,255,255,0.1);
+          box-shadow: 0 0 0 3px rgba(255,255,255,0.05);
+        }
+        .rp-input.error { border-color: rgba(248,113,113,0.5); box-shadow: 0 0 0 3px rgba(248,113,113,0.08); }
+        .rp-field-error { font-size: 11px; color: #f87171; }
+
+        /* Submit */
+        .rp-btn-submit {
+          height: 48px;
+          background: white; color: #0a0a0a;
+          border: none; border-radius: 12px;
+          font-size: 14px; font-weight: 600;
+          font-family: 'DM Sans', sans-serif;
+          cursor: pointer; letter-spacing: 0.2px;
+          margin-top: 6px;
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+          position: relative; overflow: hidden;
+        }
+        .rp-btn-submit:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 24px rgba(255,255,255,0.2);
+        }
+        .rp-btn-submit:active:not(:disabled) { transform: scale(0.99); }
+        .rp-btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Divider + Google */
+        .rp-or {
+          display: flex; align-items: center; gap: 12px;
+          margin: 4px 0;
+          opacity: 0; transition: opacity 0.5s 0.4s ease;
+        }
+        .rp-card.mounted .rp-or { opacity: 1; }
+        .rp-or-line { flex: 1; height: 1px; background: rgba(255,255,255,0.07); }
+        .rp-or-label { font-size: 12px; color: rgba(255,255,255,0.22); white-space: nowrap; }
+
+        .rp-btn-google {
+          height: 46px;
+          width: 100%;
+          display: flex; align-items: center; justify-content: center; gap: 10px;
+          background: rgba(255,255,255,0.06);
+          color: rgba(255,255,255,0.75);
+          border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 12px;
+          font-size: 14px; font-weight: 400;
+          font-family: 'DM Sans', sans-serif;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.5s 0.45s ease, background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .rp-card.mounted .rp-btn-google { opacity: 1; }
+        .rp-btn-google:hover:not(:disabled) {
+          background: rgba(255,255,255,0.11);
+          border-color: rgba(255,255,255,0.22);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+        .rp-btn-google:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+        .rp-btn-google:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        .rp-footer {
+          text-align: center; margin-top: 22px;
+          font-size: 13px; color: rgba(255,255,255,0.28);
+          opacity: 0; transition: opacity 0.5s 0.5s ease;
+        }
+        .rp-card.mounted .rp-footer { opacity: 1; }
+        .rp-footer a { color: rgba(255,255,255,0.65); text-decoration: none; font-weight: 500; transition: color 0.15s ease; }
+        .rp-footer a:hover { color: white; }
+
+        /* Success state */
+        .rp-success {
+          display: flex; flex-direction: column; align-items: center;
+          text-align: center; padding: 12px 0;
+          animation: rp-success-in 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        @keyframes rp-success-in {
+          from { opacity: 0; transform: scale(0.95); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        .rp-success-icon {
+          width: 64px; height: 64px; border-radius: 50%;
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.15);
+          display: flex; align-items: center; justify-content: center;
+          margin-bottom: 24px;
+          animation: rp-icon-pulse 2s ease-in-out infinite;
+        }
+        @keyframes rp-icon-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.1); }
+          50%       { box-shadow: 0 0 0 12px rgba(255,255,255,0); }
+        }
+        .rp-success-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 22px; font-weight: 700; color: white;
+          letter-spacing: -0.3px; margin-bottom: 10px;
+        }
+        .rp-success-sub { font-size: 14px; color: rgba(255,255,255,0.45); line-height: 1.6; margin-bottom: 24px; }
+        .rp-success-email { color: rgba(255,255,255,0.8); font-weight: 500; }
+        .rp-success-note {
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 12px; padding: 14px 18px;
+          font-size: 13px; color: rgba(255,255,255,0.4);
+          line-height: 1.6; margin-bottom: 28px; text-align: left;
+        }
+        .rp-success-link {
+          font-size: 13px; color: rgba(255,255,255,0.4);
+        }
+        .rp-success-link a { color: rgba(255,255,255,0.65); text-decoration: none; font-weight: 500; }
+        .rp-success-link a:hover { color: white; }
+
+        .rp-watermark {
+          position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+          font-size: 11px; color: rgba(255,255,255,0.1); letter-spacing: 1px;
+          white-space: nowrap; z-index: 1;
+          font-family: 'DM Sans', sans-serif;
+        }
+
+        @media (max-width: 520px) {
+          .rp-card { padding: 36px 24px; border-radius: 20px; }
+          .rp-row { flex-direction: column; gap: 14px; }
+          .rp-title { font-size: 20px; }
+        }
+      `}</style>
+
+      <div className="rp-root">
+        <div className="rp-blob rp-blob-1" />
+        <div className="rp-blob rp-blob-2" />
+
+        <div className={`rp-card ${mounted ? 'mounted' : ''}`}>
+
+          {/* Brand */}
+          <div className="rp-brand">
+            <div className="rp-logo-mark">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 3L21 8.5V15.5L12 21L3 15.5V8.5L12 3Z" fill="#0a0a0a" />
+                <circle cx="12" cy="12" r="3" fill="white" />
               </svg>
             </div>
-            <h1 style={styles.brandName}>Hope, Inc.</h1>
-            <p style={styles.brandSub}>Customer Management System</p>
-          </div>
-          <p style={styles.brandFooter}>New Era University · AY 2025–2026</p>
-        </aside>
-
-        <main style={styles.formPanel}>
-          <div style={styles.card}>
-            <div style={styles.successIcon}>✉️</div>
-            <h2 style={styles.cardTitle}>Check your inbox</h2>
-            <p style={{ ...styles.cardSubtitle, marginBottom: "20px" }}>
-              A confirmation link has been sent to <strong>{form.email}</strong>.
-              Click the link to verify your address.
-            </p>
-            <div style={styles.infoBanner} role="status">
-              <span style={styles.infoText}>
-                After confirming your email, a Sales Manager must activate your
-                account before you can sign in.
-              </span>
+            <div>
+              <div className="rp-brand-name">Hope, Inc.</div>
+              <div className="rp-brand-sub">Customer Management System</div>
             </div>
-            <p style={styles.loginNote}>
-              Already confirmed?{" "}
-              <a href="/login" style={styles.link}>Sign in</a>
-            </p>
           </div>
-        </main>
-      </div>
-    );
-  }
 
-  // ── Main registration form ─────────────────────────────────────────────────
-  return (
-    <div style={styles.root}>
-
-      {/* ── Left brand panel ──────────────────────────────────────────── */}
-      <aside style={styles.brand}>
-        <div style={styles.brandContent}>
-          <div style={styles.logoMark}>
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.15)" />
-              <path d="M8 16 L16 8 L24 16 L16 24 Z" fill="white" />
-              <circle cx="16" cy="16" r="4" fill="rgba(255,255,255,0.5)" />
-            </svg>
-          </div>
-          <h1 style={styles.brandName}>Hope, Inc.</h1>
-          <p style={styles.brandSub}>Customer Management System</p>
-          <div style={styles.divider} />
-          <p style={styles.brandNote}>
-            New accounts are created as <strong style={styles.strong}>inactive</strong> by
-            default. A Sales Manager must activate your account before you can log in.
-          </p>
-          <div style={styles.stepList}>
-            {[
-              "Register with email or Google",
-              "Wait for admin activation",
-              "Log in and start working",
-            ].map((s, i) => (
-              <div key={s} style={styles.stepItem}>
-                <div style={styles.stepNum}>{i + 1}</div>
-                <span style={styles.stepText}>{s}</span>
+          {step === 2 ? (
+            /* ── Success view ── */
+            <div className="rp-success">
+              <div className="rp-success-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
               </div>
-            ))}
-          </div>
-        </div>
-        <p style={styles.brandFooter}>New Era University · AY 2025–2026</p>
-      </aside>
-
-      {/* ── Right form panel ──────────────────────────────────────────── */}
-      <main style={styles.formPanel}>
-        <div style={styles.card}>
-
-          <header style={styles.cardHeader}>
-            <h2 style={styles.cardTitle}>Create an account</h2>
-            <p style={styles.cardSubtitle}>Fill in your details to register</p>
-          </header>
-
-          {/* Auth-level error from AuthContext */}
-          {authError && (
-            <div style={styles.errorBanner} role="alert">
-              <span style={styles.errorIcon}>!</span>
-              <span style={styles.errorText}>{authError}</span>
+              <h2 className="rp-success-title">Check your inbox</h2>
+              <p className="rp-success-sub">
+                A confirmation link has been sent to{" "}
+                <span className="rp-success-email">{sentEmail || form.email}</span>.
+                <br />Click the link to verify your address.
+              </p>
+              <div className="rp-success-note">
+                After confirming your email, a Sales Manager must activate your account before you can sign in.
+              </div>
+              <p className="rp-success-link">
+                Already confirmed?{" "}
+                <a href="/login">Sign in →</a>
+              </p>
             </div>
-          )}
+          ) : (
+            /* ── Registration form ── */
+            <>
+              <div className="rp-heading">
+                <h1 className="rp-title">Create an account.</h1>
+                <p className="rp-subtitle">Fill in your details below to get started.</p>
+              </div>
 
-          {/* ── Email registration form ──────────────────────────────── */}
-          <form onSubmit={handleSubmit} noValidate style={styles.form}>
+              <div className="rp-notice">
+                <span className="rp-notice-dot" />
+                New accounts require activation by a Sales Manager
+              </div>
 
-            {/* First name + Last name row */}
-            <div style={styles.nameRow}>
-              {(["firstName", "lastName"]).map((id) => (
-                <div key={id} style={{ ...styles.fieldGroup, flex: 1 }}>
-                  <label htmlFor={id} style={styles.label}>
-                    {id === "firstName" ? "First name" : "Last name"}
-                  </label>
-                  <input
-                    id={id}
-                    type="text"
-                    autoComplete={id === "firstName" ? "given-name" : "family-name"}
-                    placeholder={id === "firstName" ? "Juan" : "Dela Cruz"}
-                    value={form[id]}
-                    onChange={(e) => handleChange(id, e.target.value)}
-                    onBlur={() => handleBlur(id)}
-                    style={{
-                      ...styles.input,
-                      ...(errors[id] && touched[id] ? styles.inputError : {}),
-                    }}
-                    aria-invalid={!!(errors[id] && touched[id])}
-                  />
-                  {errors[id] && touched[id] && (
-                    <p style={styles.fieldError}>{errors[id]}</p>
-                  )}
+              {authError && (
+                <div className="rp-error" role="alert">
+                  <div className="rp-error-icon">!</div>
+                  <span className="rp-error-text">{authError}</span>
                 </div>
-              ))}
-            </div>
+              )}
 
-            {/* Username, Email, Password */}
-            {[
-              { id: "username", label: "Username",      type: "text",     ph: "juandc",            ac: "username"    },
-              { id: "email",    label: "Email address", type: "email",    ph: "you@example.com",   ac: "email"       },
-              { id: "password", label: "Password",      type: "password", ph: "Min. 6 characters", ac: "new-password" },
-            ].map(({ id, label, type, ph, ac }) => (
-              <div key={id} style={styles.fieldGroup}>
-                <label htmlFor={id} style={styles.label}>{label}</label>
-                <input
-                  id={id}
-                  type={type}
-                  autoComplete={ac}
-                  placeholder={ph}
-                  value={form[id]}
-                  onChange={(e) => handleChange(id, e.target.value)}
-                  onBlur={() => handleBlur(id)}
-                  style={{
-                    ...styles.input,
-                    ...(errors[id] && touched[id] ? styles.inputError : {}),
-                  }}
-                  aria-invalid={!!(errors[id] && touched[id])}
-                  aria-describedby={errors[id] && touched[id] ? `${id}-err` : undefined}
-                />
-                {errors[id] && touched[id] && (
-                  <p id={`${id}-err`} style={styles.fieldError}>{errors[id]}</p>
-                )}
+              <form className="rp-form" onSubmit={handleSubmit} noValidate>
+                {/* Name row */}
+                <div className="rp-row">
+                  {["firstName", "lastName"].map(id => (
+                    <div className="rp-field" key={id}>
+                      <label className="rp-label">{id === "firstName" ? "First name" : "Last name"}</label>
+                      <input
+                        className={`rp-input ${errors[id] && touched[id] ? 'error' : ''}`}
+                        type="text"
+                        placeholder={id === "firstName" ? "Juan" : "Cruz"}
+                        value={form[id]}
+                        onChange={e => handleChange(id, e.target.value)}
+                        onBlur={() => handleBlur(id)}
+                      />
+                      {errors[id] && touched[id] && <p className="rp-field-error">{errors[id]}</p>}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Username, Email, Password */}
+                {[
+                  { id: "username", label: "Username",       type: "text",     ph: "juandelacruz"    },
+                  { id: "email",    label: "Email address",  type: "email",    ph: "you@example.com" },
+                  { id: "password", label: "Password",       type: "password", ph: "Min. 6 characters" },
+                ].map(({ id, label, type, ph }) => (
+                  <div className="rp-field" key={id}>
+                    <label className="rp-label">{label}</label>
+                    <input
+                      className={`rp-input ${errors[id] && touched[id] ? 'error' : ''}`}
+                      type={type}
+                      placeholder={ph}
+                      value={form[id]}
+                      onChange={e => handleChange(id, e.target.value)}
+                      onBlur={() => handleBlur(id)}
+                    />
+                    {errors[id] && touched[id] && <p className="rp-field-error">{errors[id]}</p>}
+                  </div>
+                ))}
+
+                <button type="submit" disabled={loading} className="rp-btn-submit">
+                  {loading ? "Creating account…" : "Create account"}
+                </button>
+              </form>
+
+              <div className="rp-or" style={{ marginTop: '18px' }}>
+                <div className="rp-or-line" />
+                <span className="rp-or-label">or continue with</span>
+                <div className="rp-or-line" />
               </div>
-            ))}
 
-            <button
-              type="submit"
-              disabled={loading}
-              style={{ ...styles.btnPrimary, ...(loading ? styles.btnDisabled : {}) }}
-            >
-              {loading ? "Creating account…" : "Create account"}
-            </button>
-          </form>
+              <button
+                type="button"
+                onClick={onGoogleRegister}
+                disabled={loading}
+                className="rp-btn-google"
+                style={{ marginTop: '12px' }}
+              >
+                <GoogleIcon />
+                Google
+              </button>
 
-          {/* ── OR divider ────────────────────────────────────────────── */}
-          <div style={styles.orRow}>
-            <div style={styles.orLine} />
-            <span style={styles.orLabel}>or</span>
-            <div style={styles.orLine} />
-          </div>
-
-          {/* ── Google register button ────────────────────────────────── */}
-          <button
-            type="button"
-            onClick={onGoogleRegister}
-            disabled={loading}
-            style={{ ...styles.btnGoogle, ...(loading ? styles.btnDisabled : {}) }}
-            aria-label="Register with Google"
-          >
-            <GoogleIcon />
-            Register with Google
-          </button>
-
-          {/* ── Login link ────────────────────────────────────────────── */}
-          <p style={styles.loginNote}>
-            Already have an account?{" "}
-            <a href="/login" style={styles.link}>Sign in</a>
-          </p>
-
+              <p className="rp-footer">
+                Already have an account?{" "}
+                <a href="/login">Sign in</a>
+              </p>
+            </>
+          )}
         </div>
-      </main>
-    </div>
+
+        <div className="rp-watermark">NEW ERA UNIVERSITY · AY 2025–2026</div>
+      </div>
+    </>
   );
 }
 
-// ── Google icon ───────────────────────────────────────────────────────────────
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
@@ -298,268 +533,4 @@ function GoogleIcon() {
       <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
     </svg>
   );
-}
-
-// ── Styles ────────────────────────────────────────────────────────────────────
-const NAVY = "#0f1f3d";
-const BLUE = "#2563eb";
-
-const styles = {
-  root: {
-    display: "flex",
-    minHeight: "100vh",
-    fontFamily: "'DM Sans', 'Segoe UI', system-ui, sans-serif",
-  },
-  brand: {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-    width: "320px",
-    minWidth: "260px",
-    background: `linear-gradient(160deg, ${NAVY} 0%, #162744 100%)`,
-    padding: "48px 36px",
-    color: "white",
-    flexShrink: 0,
-  },
-  brandContent: { flex: 1 },
-  logoMark: { marginBottom: "20px" },
-  brandName: {
-    fontSize: "22px",
-    fontWeight: "700",
-    margin: "0 0 6px",
-    color: "white",
-    letterSpacing: "-0.3px",
-  },
-  brandSub: {
-    fontSize: "11px",
-    color: "rgba(255,255,255,0.5)",
-    margin: 0,
-    textTransform: "uppercase",
-    letterSpacing: "1px",
-  },
-  divider: {
-    width: "36px",
-    height: "2px",
-    background: "rgba(255,255,255,0.2)",
-    margin: "28px 0",
-    borderRadius: "2px",
-  },
-  brandNote: {
-    fontSize: "13px",
-    color: "rgba(255,255,255,0.6)",
-    lineHeight: "1.6",
-    margin: "0 0 24px",
-  },
-  strong: {
-    color: "white",
-    fontWeight: "600",
-  },
-  stepList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-  },
-  stepItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-  stepNum: {
-    width: "22px",
-    height: "22px",
-    borderRadius: "50%",
-    background: BLUE,
-    color: "white",
-    fontSize: "11px",
-    fontWeight: "700",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  stepText: {
-    fontSize: "13px",
-    color: "rgba(255,255,255,0.7)",
-  },
-  brandFooter: {
-    fontSize: "11px",
-    color: "rgba(255,255,255,0.3)",
-    margin: 0,
-  },
-  formPanel: {
-    flex: 1,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "32px 24px",
-    background: "#f8fafc",
-  },
-  card: {
-    width: "100%",
-    maxWidth: "460px",
-    background: "white",
-    borderRadius: "16px",
-    border: "1px solid #e2e8f0",
-    padding: "40px 36px",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04)",
-  },
-  successIcon: {
-    fontSize: "40px",
-    textAlign: "center",
-    marginBottom: "16px",
-  },
-  cardHeader: { marginBottom: "24px" },
-  cardTitle: {
-    fontSize: "22px",
-    fontWeight: "700",
-    margin: "0 0 6px",
-    color: "#0f172a",
-    letterSpacing: "-0.3px",
-    textAlign: "center",
-  },
-  cardSubtitle: {
-    fontSize: "14px",
-    color: "#64748b",
-    margin: 0,
-    textAlign: "center",
-  },
-  errorBanner: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "10px",
-    background: "#fff1f2",
-    border: "1px solid #fecdd3",
-    borderRadius: "8px",
-    padding: "12px 14px",
-    marginBottom: "20px",
-  },
-  errorIcon: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "18px",
-    height: "18px",
-    borderRadius: "50%",
-    background: "#fca5a5",
-    color: "#7f1d1d",
-    fontSize: "11px",
-    fontWeight: "700",
-    flexShrink: 0,
-  },
-  errorText: {
-    fontSize: "13px",
-    color: "#9f1239",
-    lineHeight: "1.5",
-  },
-  infoBanner: {
-    background: "#eff6ff",
-    border: "1px solid #bfdbfe",
-    borderRadius: "8px",
-    padding: "12px 14px",
-    marginBottom: "20px",
-  },
-  infoText: {
-    fontSize: "13px",
-    color: "#1e40af",
-    lineHeight: "1.5",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-  },
-  nameRow: {
-    display: "flex",
-    gap: "12px",
-  },
-  fieldGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-  label: {
-    fontSize: "13px",
-    fontWeight: "600",
-    color: "#374151",
-  },
-  input: {
-    height: "42px",
-    padding: "0 14px",
-    border: "1px solid #d1d5db",
-    borderRadius: "8px",
-    fontSize: "14px",
-    color: "#111827",
-    outline: "none",
-    width: "100%",
-    boxSizing: "border-box",
-    background: "white",
-  },
-  inputError: {
-    border: "1px solid #f87171",
-    boxShadow: "0 0 0 3px rgba(239,68,68,0.1)",
-  },
-  fieldError: {
-    fontSize: "12px",
-    color: "#dc2626",
-    margin: 0,
-  },
-  btnPrimary: {
-    width: "100%",
-    height: "44px",
-    background: BLUE,
-    color: "white",
-    border: "none",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontWeight: "600",
-    cursor: "pointer",
-    marginTop: "4px",
-  },
-  btnGoogle: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "10px",
-    width: "100%",
-    height: "44px",
-    background: "white",
-    color: "#374151",
-    border: "1px solid #d1d5db",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontWeight: "500",
-    cursor: "pointer",
-  },
-  btnDisabled: {
-    opacity: 0.6,
-    cursor: "not-allowed",
-  },
-  orRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    margin: "20px 0",
-  },
-  orLine: {
-    flex: 1,
-    height: "1px",
-    background: "#e5e7eb",
-  },
-  orLabel: {
-    fontSize: "12px",
-    color: "#9ca3af",
-    fontWeight: "500",
-  },
-  loginNote: {
-    fontSize: "13px",
-    color: "#6b7280",
-    textAlign: "center",
-    marginTop: "20px",
-    marginBottom: 0,
-  },
-  link: {
-    color: BLUE,
-    textDecoration: "none",
-    fontWeight: "500",
-  },
 }

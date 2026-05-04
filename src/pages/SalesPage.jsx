@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getSalesByCustomer, getSalesDetail } from '../services/salesProductService'
 import { useToast } from '../components/Toast'
 
@@ -14,33 +14,116 @@ export default function SalesPage() {
   const [searched, setSearched] = useState(false)
   const { showToast, ToastComponent } = useToast()
 
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 30)
+    return () => clearTimeout(t)
+  }, [])
+
   const css = `
-    .sp-page { padding: 28px 32px; max-width: 1100px; margin: 0 auto; font-family: sans-serif; }
-    .sp-topbar { margin-bottom: 24px; }
-    .sp-title { font-size: 22px; font-weight: 600; margin: 0 0 4px; color: #111827; }
-    .sp-sub { font-size: 13px; color: #6b7280; margin: 0; }
-    .sp-search-row { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
-    .sp-input { flex: 1; min-width: 180px; padding: 9px 14px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; color: #111827; outline: none; }
-    .sp-input:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-    .sp-btn { padding: 9px 20px; background: #1d4ed8; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; }
-    .sp-btn:hover { background: #1e40af; }
-    .sp-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .sp-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
-    .sp-card-header { padding: 14px 18px; border-bottom: 1px solid #f3f4f6; background: #f9fafb; }
-    .sp-card-title { font-size: 13px; font-weight: 600; color: #374151; margin: 0; }
-    .sp-card-sub { font-size: 12px; color: #9ca3af; margin: 2px 0 0; }
-    .sp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .sp-table th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; color: #6b7280; border-bottom: 1px solid #f3f4f6; text-transform: uppercase; letter-spacing: 0.05em; background: #f9fafb; white-space: nowrap; }
-    .sp-table td { padding: 11px 14px; border-bottom: 1px solid #f9fafb; color: #111827; vertical-align: middle; }
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+    .sp-root {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      padding: 28px 32px;
+      max-width: 1200px;
+      margin: 0 auto;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.45s cubic-bezier(0.22,1,0.36,1),
+                  transform 0.45s cubic-bezier(0.22,1,0.36,1);
+    }
+    .sp-root.mounted { opacity: 1; transform: translateY(0); }
+
+    .sp-header {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 20px;
+    }
+    
+    .sp-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 26px; font-weight: 700;
+      color: #09090b; letter-spacing: -0.5px;
+      line-height: 1.1; margin: 0 0 6px;
+    }
+    
+    .sp-subtitle { font-size: 13px; color: #71717a; font-weight: 400; margin: 0; }
+
+    .sp-notice {
+      background: #fafafa; border: 1px solid #e4e4e7; border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 24px; font-size: 13px; color: #71717a;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .sp-toolbar {
+      display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; align-items: center;
+    }
+
+    .sp-search-wrap {
+      position: relative; flex: 1; min-width: 220px; max-width: 400px;
+    }
+    
+    .sp-search-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: #a1a1aa; pointer-events: none; display: flex; align-items: center;
+    }
+
+    .sp-input {
+      width: 100%; height: 38px; padding: 0 12px 0 36px;
+      background: white; border: 1px solid #e4e4e7; border-radius: 9px;
+      font-size: 13.5px; color: #09090b; outline: none;
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      box-sizing: border-box;
+    }
+    .sp-input::placeholder { color: #a1a1aa; }
+    .sp-input:focus { border-color: #09090b; box-shadow: 0 0 0 3px rgba(9,9,11,0.06); }
+
+    .sp-btn {
+      height: 38px; padding: 0 20px;
+      background: #09090b; color: white; border: none; border-radius: 9px;
+      font-size: 13.5px; font-weight: 500; font-family: 'DM Sans', sans-serif;
+      cursor: pointer; white-space: nowrap; display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.15s ease, transform 0.1s ease;
+    }
+    .sp-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .sp-btn:active { transform: translateY(0); opacity: 1; }
+
+    .sp-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+
+    .sp-card { background: white; border: 1px solid #e4e4e7; border-radius: 14px; overflow: hidden; }
+    .sp-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; border-bottom: 1px solid #f4f4f5; background: #fafafa;
+    }
+    .sp-card-title { font-size: 13px; font-weight: 600; color: #09090b; margin: 0; }
+    .sp-card-sub { font-size: 12px; color: #a1a1aa; margin: 0; }
+
+    .sp-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    .sp-table thead { background: #fafafa; }
+    .sp-table th { padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 600; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1px solid #f4f4f5; white-space: nowrap; }
+    .sp-table td { padding: 12px 16px; border-bottom: 1px solid #f4f4f5; color: #09090b; vertical-align: middle; }
     .sp-table tr:last-child td { border-bottom: none; }
-    .sp-table tbody tr { cursor: pointer; }
-    .sp-table tbody tr:hover td { background: #eff6ff; }
-    .sp-table tbody tr.selected td { background: #dbeafe; }
-    .sp-mono { font-family: monospace; font-size: 12px; color: #6b7280; }
-    .sp-empty { text-align: center; padding: 48px 24px; color: #9ca3af; font-size: 13px; }
-    .sp-badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; background: #dbeafe; color: #1e40af; }
-    .sp-notice { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; margin-bottom: 20px; font-size: 13px; color: #166534; }
-    @media (max-width: 700px) { .sp-layout { grid-template-columns: 1fr; } }
+    .sp-table tbody tr { transition: background 0.1s ease; cursor: pointer; }
+    .sp-table tbody tr:hover td { background: #fafafa; }
+    .sp-table tbody tr.selected td { background: #f4f4f5; }
+
+    .sp-mono { font-family: 'Courier New', monospace; font-size: 12px; color: #71717a; letter-spacing: 0.3px; }
+    
+    .sp-empty { text-align: center; padding: 64px 24px; color: #a1a1aa; font-size: 13.5px; }
+    
+    .sp-badge {
+      display: inline-block; padding: 3px 9px; border-radius: 6px;
+      font-size: 11px; font-weight: 600; background: #f4f4f5; color: #3f3f46; border: 1px solid #e4e4e7;
+    }
+
+    /* Skeleton Loading Outline */
+    @keyframes sp-shimmer { 0% { background-position: -600px 0; } 100% { background-position: 600px 0; } }
+    .sp-skel { height: 13px; border-radius: 6px; background: linear-gradient(90deg, #f4f4f5 25%, #e4e4e7 50%, #f4f4f5 75%); background-size: 600px 100%; animation: sp-shimmer 1.4s infinite; }
+
+    @media (max-width: 768px) { .sp-layout { grid-template-columns: 1fr; } .sp-search-wrap { max-width: 100%; } }
   `
 
   async function handleSearch() {
@@ -81,26 +164,36 @@ export default function SalesPage() {
     <>
       {ToastComponent}
       <style>{css}</style>
-      <div className="sp-page">
+      <div className={`sp-root ${mounted ? 'mounted' : ''}`}>
 
-        <div className="sp-topbar">
-          <h1 className="sp-title">Sales</h1>
-          <p className="sp-sub">View sales transactions by customer — read only</p>
+        <div className="sp-header">
+          <h1 className="sp-title">Sales Transactions</h1>
+          <p className="sp-subtitle">View past transactions and itemized details by customer</p>
         </div>
 
         <div className="sp-notice">
-          This page is view-only. No add, edit, or delete operations are available on sales records.
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+             <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          This page is view-only. Modifications to sales records are not permitted here.
         </div>
 
-        <div className="sp-search-row">
-          <input
-            className="sp-input"
-            type="text"
-            placeholder="Enter customer no. (e.g. C0001)"
-            value={inputVal}
-            onChange={(e) => setInputVal(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          />
+        <div className="sp-toolbar">
+          <div className="sp-search-wrap">
+            <span className="sp-search-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
+            <input
+              className="sp-input"
+              type="text"
+              placeholder="Enter customer no. (e.g. C0001)"
+              value={inputVal}
+              onChange={(e) => setInputVal(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            />
+          </div>
           <button className="sp-btn" onClick={handleSearch}>Search</button>
         </div>
 
@@ -109,14 +202,18 @@ export default function SalesPage() {
           <div className="sp-card">
             <div className="sp-card-header">
               <p className="sp-card-title">
-                Transactions {custNo ? `— ${custNo}` : ''}
+                Transactions {custNo ? <span style={{color: '#a1a1aa', fontWeight: 400}}>— {custNo}</span> : ''}
               </p>
               {sales.length > 0 && (
-                <p className="sp-card-sub">{sales.length} record{sales.length !== 1 ? 's' : ''} found</p>
+                <p className="sp-card-sub">{sales.length} record{sales.length !== 1 ? 's' : ''}</p>
               )}
             </div>
             {loading ? (
-              <div className="sp-empty">Loading…</div>
+              <div style={{ padding: '24px' }}>
+                <div className="sp-skel" style={{ width: '100%', marginBottom: '16px', height: '24px' }}></div>
+                <div className="sp-skel" style={{ width: '100%', marginBottom: '16px', height: '24px' }}></div>
+                <div className="sp-skel" style={{ width: '100%', height: '24px' }}></div>
+              </div>
             ) : error ? (
               <div className="sp-empty" style={{ color: '#dc2626' }}>{error}</div>
             ) : !searched ? (
@@ -153,7 +250,7 @@ export default function SalesPage() {
           <div className="sp-card">
             <div className="sp-card-header">
               <p className="sp-card-title">
-                Line Items {selectedTrans ? `— ${selectedTrans}` : ''}
+                Line Items {selectedTrans ? <span style={{color: '#a1a1aa', fontWeight: 400}}>— {selectedTrans}</span> : ''}
               </p>
               {detail && (
                 <p className="sp-card-sub">{detail.length} item{detail.length !== 1 ? 's' : ''}</p>
@@ -162,7 +259,11 @@ export default function SalesPage() {
             {!selectedTrans ? (
               <div className="sp-empty">Select a transaction to view its line items.</div>
             ) : detailLoading ? (
-              <div className="sp-empty">Loading…</div>
+               <div style={{ padding: '24px' }}>
+                <div className="sp-skel" style={{ width: '100%', marginBottom: '16px', height: '24px' }}></div>
+                <div className="sp-skel" style={{ width: '80%', marginBottom: '16px', height: '24px' }}></div>
+                <div className="sp-skel" style={{ width: '90%', height: '24px' }}></div>
+              </div>
             ) : !detail || detail.length === 0 ? (
               <div className="sp-empty">No line items found.</div>
             ) : (
@@ -179,11 +280,11 @@ export default function SalesPage() {
                   {detail.map((d, i) => (
                     <tr key={i}>
                       <td className="sp-mono">{d.product?.prodcode}</td>
-                      <td>{d.product?.description}</td>
+                      <td style={{ fontWeight: 500 }}>{d.product?.description}</td>
                       <td>
                         <span className="sp-badge">{d.product?.unit}</span>
                       </td>
-                      <td style={{ fontWeight: 500 }}>{d.quantity}</td>
+                      <td style={{ fontWeight: 600 }}>{d.quantity}</td>
                     </tr>
                   ))}
                 </tbody>

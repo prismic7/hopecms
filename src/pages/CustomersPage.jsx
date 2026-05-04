@@ -9,16 +9,25 @@ import SoftDeleteConfirmDialog from '../components/SoftDeleteConfirmDialog'
 import { useToast } from '../components/Toast'
 import { SkeletonTable } from '../components/Skeleton'
 
+const PAYTERM_LABEL = { COD: 'Cash on Delivery', '30D': '30-day', '45D': '45-day' }
+const PAYTERM_COLOR = {
+  COD:  { bg: '#fef3c7', color: '#92400e', border: '#fde68a' },
+  '30D':{ bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' },
+  '45D':{ bg: '#f3e8ff', color: '#6b21a8', border: '#e9d5ff' },
+}
+
 export default function CustomersPage() {
   const { currentUser } = useAuth()
   const { rights } = useRights()
   const userType = currentUser?.user_type
+  const navigate = useNavigate()
 
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
   const [paytermFilter, setPaytermFilter] = useState('')
+  const [mounted, setMounted] = useState(false)
+
   const { showToast, ToastComponent } = useToast()
 
   const [showAdd, setShowAdd] = useState(false)
@@ -26,20 +35,22 @@ export default function CustomersPage() {
   const [deleteTarget, setDeleteTarget] = useState(null)
 
   const showStamp = userType === 'ADMIN' || userType === 'SUPERADMIN'
-  // Rights-gated visibility
-  const canAdd = rights.CUST_ADD === 1
+  const canAdd  = rights.CUST_ADD  === 1
   const canEdit = rights.CUST_EDIT === 1
-  const canDel = rights.CUST_DEL === 1
-  const navigate = useNavigate()
+  const canDel  = rights.CUST_DEL  === 1
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 30)
+    return () => clearTimeout(t)
+  }, [])
 
   async function fetchCustomers() {
     setLoading(true)
-    setError(null)
     try {
       const data = await getCustomers(userType)
       setCustomers(data || [])
     } catch {
-      showToast('Failed to load customers. Please try again.', 'error')
+      showToast('Failed to load customers.', 'error')
     } finally {
       setLoading(false)
     }
@@ -47,111 +58,388 @@ export default function CustomersPage() {
 
   useEffect(() => { fetchCustomers() }, [userType])
 
-  const filtered = customers.filter((c) => {
-    const matchesSearch =
-      c.custname?.toLowerCase().includes(search.toLowerCase()) ||
-      c.custno?.toLowerCase().includes(search.toLowerCase())
-    const matchesPayterm = paytermFilter ? c.payterm === paytermFilter : true
-    return matchesSearch && matchesPayterm
+  const filtered = customers.filter(c => {
+    const q = search.toLowerCase()
+    const matchSearch = c.custname?.toLowerCase().includes(q) || c.custno?.toLowerCase().includes(q)
+    const matchPayterm = paytermFilter ? c.payterm === paytermFilter : true
+    return matchSearch && matchPayterm
   })
 
-  const css = `
-    .cms-page { padding: 28px 32px; font-family: sans-serif; max-width: 1100px; margin: 0 auto; }
-    .cms-topbar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
-    .cms-title { font-size: 22px; font-weight: 600; margin: 0 0 4px; color: #111827; }
-    .cms-sub { font-size: 13px; color: #6b7280; margin: 0; }
-    .cms-add-btn { background: #1d4ed8; color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; }
-    .cms-add-btn:hover { background: #1e40af; }
-    .cms-controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-    .cms-search-wrap { position: relative; flex: 1; min-width: 200px; }
-    .cms-search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 15px; pointer-events: none; }
-    .cms-search { width: 100%; box-sizing: border-box; padding: 8px 12px 8px 34px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; color: #111827; outline: none; }
-    .cms-search:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-    .cms-select { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; color: #111827; background: #fff; outline: none; }
-    .cms-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
-    .cms-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .cms-table thead { background: #f9fafb; }
-    .cms-table th { padding: 10px 14px; text-align: left; font-weight: 600; font-size: 11px; color: #6b7280; border-bottom: 1px solid #f3f4f6; white-space: nowrap; letter-spacing: 0.05em; text-transform: uppercase; }
-    .cms-table td { padding: 11px 14px; border-bottom: 1px solid #f9fafb; color: #111827; vertical-align: middle; }
-    .cms-table tr:last-child td { border-bottom: none; }
-    .cms-table tr:hover td { background: #f9fafb; }
-    .cms-custno { font-family: monospace; font-size: 12px; color: #6b7280; }
-    .cms-custname { font-weight: 500; }
-    .cms-address { color: #6b7280; font-size: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .payterm-pill { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
-    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
-    .badge-active { background: #d1fae5; color: #065f46; }
-    .badge-inactive { background: #fee2e2; color: #991b1b; }
-    .badge-dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
-    .stamp-cell { font-size: 11px; color: #9ca3af; font-family: monospace; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .btn-edit { padding: 4px 10px; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 12px; cursor: pointer; background: #fff; color: #374151; margin-right: 6px; }
-    .btn-edit:hover { background: #f9fafb; }
-    .btn-del { padding: 4px 10px; border-radius: 6px; border: 1px solid #fecaca; font-size: 12px; cursor: pointer; background: #fff; color: #dc2626; }
-    .btn-del:hover { background: #fef2f2; }
-    .cms-footer { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af; }
-    .cms-empty { text-align: center; padding: 56px 24px; color: #9ca3af; font-size: 14px; }
-    .cms-error { text-align: center; padding: 56px 24px; color: #dc2626; font-size: 14px; }
-  `
-
-
+  const activeCount   = customers.filter(c => c.record_status === 'ACTIVE').length
+  const inactiveCount = customers.filter(c => c.record_status === 'INACTIVE').length
 
   return (
     <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+        .cp-root {
+          font-family: 'DM Sans', system-ui, sans-serif;
+          max-width: 1200px;
+          margin: 0 auto;
+          opacity: 0;
+          transform: translateY(10px);
+          transition: opacity 0.45s cubic-bezier(0.22,1,0.36,1),
+                      transform 0.45s cubic-bezier(0.22,1,0.36,1);
+        }
+        .cp-root.mounted { opacity: 1; transform: translateY(0); }
+
+        /* ── Header ──────────────────────────────────────────── */
+        .cp-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          margin-bottom: 28px;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+        .cp-title-block {}
+        .cp-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 26px; font-weight: 700;
+          color: #09090b; letter-spacing: -0.5px;
+          line-height: 1.1; margin: 0 0 6px;
+        }
+        .cp-subtitle { font-size: 13px; color: #71717a; font-weight: 400; }
+
+        /* ── Stat pills ──────────────────────────────────────── */
+        .cp-stats {
+          display: flex; gap: 8px; flex-wrap: wrap;
+          margin-bottom: 20px;
+        }
+        .cp-stat {
+          display: flex; align-items: center; gap: 8px;
+          padding: 8px 14px;
+          background: white;
+          border: 1px solid #e4e4e7;
+          border-radius: 10px;
+          font-size: 13px;
+        }
+        .cp-stat-dot {
+          width: 7px; height: 7px;
+          border-radius: 50%; flex-shrink: 0;
+        }
+        .cp-stat-val { font-weight: 600; color: #09090b; }
+        .cp-stat-lbl { color: #71717a; }
+
+        /* ── Toolbar ─────────────────────────────────────────── */
+        .cp-toolbar {
+          display: flex; gap: 10px;
+          margin-bottom: 16px;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+
+        .cp-search-wrap {
+          position: relative; flex: 1; min-width: 220px;
+        }
+        .cp-search-icon {
+          position: absolute; left: 12px; top: 50%;
+          transform: translateY(-50%);
+          color: #a1a1aa; pointer-events: none;
+          display: flex; align-items: center;
+        }
+        .cp-search {
+          width: 100%; height: 38px;
+          padding: 0 12px 0 36px;
+          background: white;
+          border: 1px solid #e4e4e7;
+          border-radius: 9px;
+          font-size: 13.5px; color: #09090b;
+          outline: none;
+          font-family: 'DM Sans', sans-serif;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .cp-search::placeholder { color: #a1a1aa; }
+        .cp-search:focus {
+          border-color: #09090b;
+          box-shadow: 0 0 0 3px rgba(9,9,11,0.06);
+        }
+
+        .cp-filter-select {
+          height: 38px; padding: 0 12px;
+          background: white;
+          border: 1px solid #e4e4e7;
+          border-radius: 9px;
+          font-size: 13.5px; color: #09090b;
+          outline: none; cursor: pointer;
+          font-family: 'DM Sans', sans-serif;
+          transition: border-color 0.15s ease;
+        }
+        .cp-filter-select:focus { border-color: #09090b; }
+
+        /* Add button */
+        .cp-add-btn {
+          height: 38px; padding: 0 16px;
+          background: #09090b; color: white;
+          border: none; border-radius: 9px;
+          font-size: 13.5px; font-weight: 500;
+          font-family: 'DM Sans', sans-serif;
+          cursor: pointer; white-space: nowrap;
+          display: flex; align-items: center; gap: 7px;
+          transition: opacity 0.15s ease, transform 0.1s ease;
+          flex-shrink: 0;
+        }
+        .cp-add-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+        .cp-add-btn:active { transform: translateY(0); opacity: 1; }
+
+        /* ── Table card ──────────────────────────────────────── */
+        .cp-card {
+          background: white;
+          border: 1px solid #e4e4e7;
+          border-radius: 14px;
+          overflow: hidden;
+        }
+
+        .cp-card-header {
+          display: flex; align-items: center;
+          justify-content: space-between;
+          padding: 14px 20px;
+          border-bottom: 1px solid #f4f4f5;
+          background: #fafafa;
+        }
+        .cp-card-title {
+          font-size: 13px; font-weight: 600; color: #09090b;
+        }
+        .cp-card-count {
+          font-size: 12px; color: #a1a1aa;
+        }
+
+        /* Table */
+        .cp-table {
+          width: 100%; border-collapse: collapse;
+          font-size: 13.5px;
+        }
+        .cp-table thead { background: #fafafa; }
+        .cp-table th {
+          padding: 10px 16px;
+          text-align: left;
+          font-size: 11px; font-weight: 600;
+          color: #a1a1aa;
+          text-transform: uppercase; letter-spacing: 0.6px;
+          border-bottom: 1px solid #f4f4f5;
+          white-space: nowrap;
+        }
+        .cp-table td {
+          padding: 12px 16px;
+          border-bottom: 1px solid #f4f4f5;
+          color: #09090b; vertical-align: middle;
+        }
+        .cp-table tr:last-child td { border-bottom: none; }
+        .cp-table tbody tr {
+          transition: background 0.1s ease;
+        }
+        .cp-table tbody tr:hover td { background: #fafafa; }
+
+        /* Cell types */
+        .cp-custno {
+          font-family: 'Courier New', monospace;
+          font-size: 12px; color: #71717a;
+          letter-spacing: 0.3px;
+        }
+        .cp-custname {
+          font-weight: 500; color: #09090b;
+          cursor: pointer;
+          transition: color 0.15s ease;
+          display: flex; align-items: center; gap: 6px;
+        }
+        .cp-custname:hover { color: #09090b; }
+        .cp-custname-arrow {
+          font-size: 11px; color: #a1a1aa;
+          opacity: 0;
+          transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+        .cp-table tbody tr:hover .cp-custname-arrow {
+          opacity: 1; transform: translateX(2px);
+        }
+
+        .cp-address {
+          color: #71717a; font-size: 12.5px;
+          max-width: 180px;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
+        /* Payterm badge */
+        .cp-payterm {
+          display: inline-block;
+          padding: 3px 9px;
+          border-radius: 6px;
+          font-size: 11px; font-weight: 600;
+          border: 1px solid;
+          white-space: nowrap;
+        }
+
+        /* Status badge */
+        .cp-status {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 3px 10px; border-radius: 100px;
+          font-size: 11px; font-weight: 600;
+        }
+        .cp-status-dot {
+          width: 5px; height: 5px;
+          border-radius: 50%; flex-shrink: 0;
+        }
+        .cp-status.active  { background: #dcfce7; color: #166534; }
+        .cp-status.inactive{ background: #fee2e2; color: #991b1b; }
+
+        /* Stamp */
+        .cp-stamp {
+          font-size: 11px; color: #a1a1aa;
+          font-family: 'Courier New', monospace;
+          max-width: 160px;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
+        /* Action buttons */
+        .cp-actions { display: flex; align-items: center; gap: 6px; }
+        .cp-btn-edit {
+          height: 28px; padding: 0 10px;
+          background: none;
+          border: 1px solid #e4e4e7;
+          border-radius: 6px;
+          font-size: 12px; font-weight: 500; color: #3f3f46;
+          cursor: pointer; font-family: 'DM Sans', sans-serif;
+          transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+        .cp-btn-edit:hover {
+          background: #09090b; border-color: #09090b; color: white;
+        }
+        .cp-btn-del {
+          height: 28px; padding: 0 10px;
+          background: none;
+          border: 1px solid #fecaca;
+          border-radius: 6px;
+          font-size: 12px; font-weight: 500; color: #dc2626;
+          cursor: pointer; font-family: 'DM Sans', sans-serif;
+          transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+        .cp-btn-del:hover {
+          background: #dc2626; border-color: #dc2626; color: white;
+        }
+
+        /* Empty / loading states */
+        .cp-empty {
+          text-align: center;
+          padding: 64px 24px;
+          color: #a1a1aa; font-size: 13.5px;
+        }
+        .cp-empty-icon {
+          font-size: 32px; margin-bottom: 12px;
+          display: block; opacity: 0.4;
+        }
+        .cp-empty-title {
+          font-weight: 500; color: #71717a;
+          margin-bottom: 4px;
+        }
+
+        /* Footer */
+        .cp-footer {
+          padding: 10px 20px;
+          border-top: 1px solid #f4f4f5;
+          font-size: 12px; color: #a1a1aa;
+          background: #fafafa;
+          display: flex; align-items: center; justify-content: space-between;
+        }
+
+        /* Skeleton shimmer override for light pages */
+        @keyframes cp-shimmer {
+          0%   { background-position: -600px 0; }
+          100% { background-position: 600px 0; }
+        }
+        .cp-skel {
+          height: 13px; border-radius: 6px;
+          background: linear-gradient(90deg, #f4f4f5 25%, #e4e4e7 50%, #f4f4f5 75%);
+          background-size: 600px 100%;
+          animation: cp-shimmer 1.4s infinite;
+        }
+
+        @media (max-width: 768px) {
+          .cp-header { flex-direction: column; }
+          .cp-table th:nth-child(3),
+          .cp-table td:nth-child(3) { display: none; }
+        }
+        @media (max-width: 560px) {
+          .cp-table th:nth-child(5),
+          .cp-table td:nth-child(5) { display: none; }
+        }
+      `}</style>
+
       {ToastComponent}
-      <style>{css}</style>
 
       {/* Modals */}
       {showAdd && (
-        <AddCustomerModal
-          onClose={() => setShowAdd(false)}
-          onSuccess={fetchCustomers}
-        />
+        <AddCustomerModal onClose={() => setShowAdd(false)} onSuccess={fetchCustomers} />
       )}
       {editTarget && (
-        <EditCustomerModal
-          customer={editTarget}
-          onClose={() => setEditTarget(null)}
-          onSuccess={fetchCustomers}
-        />
+        <EditCustomerModal customer={editTarget} onClose={() => setEditTarget(null)} onSuccess={fetchCustomers} />
       )}
       {deleteTarget && (
-        <SoftDeleteConfirmDialog
-          customer={deleteTarget}
-          onClose={() => setDeleteTarget(null)}
-          onSuccess={fetchCustomers}
-        />
+        <SoftDeleteConfirmDialog customer={deleteTarget} onClose={() => setDeleteTarget(null)} onSuccess={fetchCustomers} />
       )}
 
-      <div className="cms-page">
+      <div className={`cp-root ${mounted ? 'mounted' : ''}`}>
+
         {/* Header */}
-        <div className="cms-topbar">
-          <div>
-            <h1 className="cms-title">Customers</h1>
-            <p className="cms-sub">{customers.length} total records</p>
+        <div className="cp-header">
+          <div className="cp-title-block">
+            <h1 className="cp-title">Customers</h1>
+            <p className="cp-subtitle">
+              Manage customer records, payment terms, and sales history
+            </p>
           </div>
           {canAdd && (
-            <button className="cms-add-btn" onClick={() => setShowAdd(true)}>
-              + Add customer
+            <button className="cp-add-btn" onClick={() => setShowAdd(true)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Add Customer
             </button>
           )}
         </div>
 
-        {/* Search & Filter */}
-        <div className="cms-controls">
-          <div className="cms-search-wrap">
-            <span className="cms-search-icon">⌕</span>
+        {/* Stats */}
+        {!loading && (
+          <div className="cp-stats">
+            <div className="cp-stat">
+              <span className="cp-stat-dot" style={{ background: '#09090b' }} />
+              <span className="cp-stat-val">{customers.length}</span>
+              <span className="cp-stat-lbl">Total</span>
+            </div>
+            <div className="cp-stat">
+              <span className="cp-stat-dot" style={{ background: '#16a34a' }} />
+              <span className="cp-stat-val">{activeCount}</span>
+              <span className="cp-stat-lbl">Active</span>
+            </div>
+            {inactiveCount > 0 && (
+              <div className="cp-stat">
+                <span className="cp-stat-dot" style={{ background: '#dc2626' }} />
+                <span className="cp-stat-val">{inactiveCount}</span>
+                <span className="cp-stat-lbl">Inactive</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Toolbar */}
+        <div className="cp-toolbar">
+          <div className="cp-search-wrap">
+            <span className="cp-search-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
             <input
-              className="cms-search"
+              className="cp-search"
               type="text"
               placeholder="Search by name or customer no."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={e => setSearch(e.target.value)}
             />
           </div>
           <select
-            className="cms-select"
+            className="cp-filter-select"
             value={paytermFilter}
-            onChange={(e) => setPaytermFilter(e.target.value)}
+            onChange={e => setPaytermFilter(e.target.value)}
           >
             <option value="">All payment terms</option>
             <option value="COD">COD</option>
@@ -161,28 +449,47 @@ export default function CustomersPage() {
         </div>
 
         {/* Table */}
-        <div className="cms-card">
+        <div className="cp-card">
+          <div className="cp-card-header">
+            <span className="cp-card-title">Customer Records</span>
+            {!loading && (
+              <span className="cp-card-count">
+                {filtered.length} of {customers.length} shown
+              </span>
+            )}
+          </div>
+
           {loading ? (
-            <table className="cms-table">
+            <table className="cp-table">
               <thead>
                 <tr>
-                  <th>Cust No.</th>
-                  <th>Name</th>
-                  <th>Address</th>
-                  <th>Pay Term</th>
-                  <th>Status</th>
+                  <th>Cust No.</th><th>Name</th><th>Address</th>
+                  <th>Pay Term</th><th>Status</th>
+                  {showStamp && <th>Stamp</th>}
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                <SkeletonTable rows={6} cols={6} />
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i}>
+                    {[60, 140, 180, 70, 80, ...(showStamp ? [130] : []), 90].map((w, j) => (
+                      <td key={j}>
+                        <div className="cp-skel" style={{ width: w }} />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
               </tbody>
             </table>
           ) : filtered.length === 0 ? (
-            <div className="cms-empty">No customers found.</div>
+            <div className="cp-empty">
+              <span className="cp-empty-icon">🔍</span>
+              <p className="cp-empty-title">No customers found</p>
+              <p>Try adjusting your search or filter.</p>
+            </div>
           ) : (
             <>
-              <table className="cms-table">
+              <table className="cp-table">
                 <thead>
                   <tr>
                     <th>Cust No.</th>
@@ -195,50 +502,103 @@ export default function CustomersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((c) => (
-                    <tr key={c.custno}>
-                      <td className="cms-custno">{c.custno}</td>
-                      <td
-                        className="cms-custname"
-                        style={{ cursor: 'pointer', color: '#1d4ed8' }}
-                        onClick={() => navigate(`/customers/${c.custno}`)}
-                      >
-                        {c.custname}
-                      </td>
-                      <td className="cms-address" title={c.address}>{c.address}</td>
-                      <td><span className="payterm-pill">{c.payterm}</span></td>
-                      <td>
-                        <span className={`badge ${c.record_status === 'ACTIVE' ? 'badge-active' : 'badge-inactive'}`}>
-                          <span className="badge-dot" style={{ background: c.record_status === 'ACTIVE' ? '#059669' : '#dc2626' }} />
-                          {c.record_status === 'ACTIVE' ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      {showStamp && (
-                        <td className="stamp-cell" title={c.stamp || ''}>{c.stamp || '—'}</td>
-                      )}
-                      <td>
-                        {c.record_status === 'ACTIVE' ? (
-                          <>
-                            {canEdit && (
-                              <button className="btn-edit" onClick={() => setEditTarget(c)}>Edit</button>
-                            )}
-                            {canDel && (
-                              <button className="btn-del" onClick={() => setDeleteTarget(c)}>Delete</button>
-                            )}
-                            {!canEdit && !canDel && (
-                              <span style={{ fontSize: '12px', color: '#9ca3af' }}>—</span>
-                            )}
-                          </>
-                        ) : (
-                          <span style={{ fontSize: '12px', color: '#9ca3af' }}>—</span>
+                  {filtered.map((c, i) => {
+                    const pt = PAYTERM_COLOR[c.payterm] || {}
+                    const isActive = c.record_status === 'ACTIVE'
+                    return (
+                      <tr key={c.custno} style={{ animationDelay: `${i * 0.02}s` }}>
+                        <td>
+                          <span className="cp-custno">{c.custno}</span>
+                        </td>
+                        <td>
+                          <span
+                            className="cp-custname"
+                            onClick={() => navigate(`/customers/${c.custno}`)}
+                          >
+                            {c.custname}
+                            <span className="cp-custname-arrow">→</span>
+                          </span>
+                        </td>
+                        <td>
+                          <span className="cp-address" title={c.address}>
+                            {c.address || '—'}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className="cp-payterm"
+                            style={{
+                              background: pt.bg,
+                              color: pt.color,
+                              borderColor: pt.border,
+                            }}
+                          >
+                            {c.payterm}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`cp-status ${isActive ? 'active' : 'inactive'}`}>
+                            <span
+                              className="cp-status-dot"
+                              style={{ background: isActive ? '#16a34a' : '#dc2626' }}
+                            />
+                            {isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        {showStamp && (
+                          <td>
+                            <span className="cp-stamp" title={c.stamp || ''}>
+                              {c.stamp || '—'}
+                            </span>
+                          </td>
                         )}
-                      </td>
-                    </tr>
-                  ))}
+                        <td>
+                          <div className="cp-actions">
+                            {isActive ? (
+                              <>
+                                {canEdit && (
+                                  <button className="cp-btn-edit" onClick={() => setEditTarget(c)}>
+                                    Edit
+                                  </button>
+                                )}
+                                {canDel && (
+                                  <button className="cp-btn-del" onClick={() => setDeleteTarget(c)}>
+                                    Delete
+                                  </button>
+                                )}
+                                {!canEdit && !canDel && (
+                                  <span style={{ fontSize: 12, color: '#a1a1aa' }}>—</span>
+                                )}
+                              </>
+                            ) : (
+                              <span style={{ fontSize: 12, color: '#a1a1aa' }}>—</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
-              <div className="cms-footer">
-                <span>Showing {filtered.length} of {customers.length} customers</span>
+
+              <div className="cp-footer">
+                <span>
+                  Showing <strong style={{ color: '#09090b' }}>{filtered.length}</strong> of{' '}
+                  <strong style={{ color: '#09090b' }}>{customers.length}</strong> customers
+                </span>
+                {paytermFilter && (
+                  <button
+                    onClick={() => setPaytermFilter('')}
+                    style={{
+                      background: 'none', border: 'none',
+                      fontSize: 12, color: '#09090b',
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    Clear filter
+                  </button>
+                )}
               </div>
             </>
           )}
