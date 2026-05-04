@@ -126,7 +126,6 @@ export default function DeletedCustomersPage() {
     setLoading(true)
     setError(null)
     try {
-      // Pass SUPERADMIN so we get all rows including INACTIVE[cite: 6]
       const all = await getCustomers('SUPERADMIN')
       setCustomers((all || []).filter((c) => c.record_status === 'INACTIVE'))
     } catch {
@@ -172,7 +171,7 @@ export default function DeletedCustomersPage() {
           </svg>
           <span>
             These records are soft-deleted and invisible to standard users. 
-            Recovery restores full visibility and system-wide access.[cite: 6]
+            Recovery restores full visibility and system-wide access.
           </span>
         </div>
 
@@ -251,7 +250,7 @@ export default function DeletedCustomersPage() {
                 </tbody>
               </table>
               <div className="dc-footer">
-                Showing {filtered.length} of {customers.length} inactive records[cite: 6]
+                Showing {filtered.length} of {customers.length} inactive records
               </div>
             </>
           )}

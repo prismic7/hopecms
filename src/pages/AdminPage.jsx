@@ -16,7 +16,6 @@ export default function AdminPage() {
 
   const [mounted, setMounted] = useState(false)
 
-  // Confirm modal state[cite: 7]
   const [pendingRoleChange, setPendingRoleChange] = useState(null)
   // { userId, username, currentRole, newRole }
 
@@ -273,7 +272,7 @@ export default function AdminPage() {
           </svg>
           <span>
             SUPERADMIN accounts are protected and cannot be modified. Only SUPERADMIN can reassign user roles. 
-            New registrations require manual activation before system access is granted[cite: 7].
+            New registrations require manual activation before system access is granted.
           </span>
         </div>
 
@@ -394,7 +393,7 @@ export default function AdminPage() {
                 </tbody>
               </table>
               <div className="ap-footer">
-                Showing {filtered.length} of {users.length} registered accounts[cite: 7]
+                Showing {filtered.length} of {users.length} registered accounts
               </div>
             </>
           )}
@@ -410,7 +409,7 @@ export default function AdminPage() {
               <strong>{pendingRoleChange.currentRole}</strong> to{' '}
               <strong>{pendingRoleChange.newRole}</strong>?
               <br /><br />
-              New permissions will be applied immediately[cite: 7].
+              New permissions will be applied immediately.
             </p>
             <div className="ap-modal-actions">
               <button className="ap-modal-btn ap-modal-cancel" onClick={() => setPendingRoleChange(null)}>
