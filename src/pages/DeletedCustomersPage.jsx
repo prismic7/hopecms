@@ -13,40 +13,120 @@ export default function DeletedCustomersPage() {
   const [search, setSearch] = useState('')
   const { showToast, ToastComponent } = useToast()
 
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 30)
+    return () => clearTimeout(t)
+  }, [])
+
   const css = `
-    .dc-page { padding: 28px 32px; max-width: 1100px; margin: 0 auto; font-family: sans-serif; }
-    .dc-topbar { margin-bottom: 24px; }
-    .dc-title { font-size: 22px; font-weight: 600; margin: 0 0 4px; color: #111827; }
-    .dc-sub { font-size: 13px; color: #6b7280; margin: 0; }
-    .dc-warning { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 10px 14px; margin-bottom: 20px; font-size: 13px; color: #9a3412; }
-    .dc-controls { margin-bottom: 20px; }
-    .dc-search { width: 100%; box-sizing: border-box; padding: 9px 14px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; color: #111827; outline: none; }
-    .dc-search:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-    .dc-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
-    .dc-card-header { padding: 14px 18px; border-bottom: 1px solid #f3f4f6; background: #f9fafb; display: flex; justify-content: space-between; align-items: center; }
-    .dc-card-title { font-size: 13px; font-weight: 600; color: #374151; margin: 0; }
-    .dc-card-count { font-size: 12px; color: #9ca3af; }
-    .dc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .dc-table th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; color: #6b7280; border-bottom: 1px solid #f3f4f6; text-transform: uppercase; letter-spacing: 0.05em; background: #f9fafb; white-space: nowrap; }
-    .dc-table td { padding: 11px 14px; border-bottom: 1px solid #f9fafb; color: #111827; vertical-align: middle; }
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+    .dc-root {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      padding: 28px 32px;
+      max-width: 1200px;
+      margin: 0 auto;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.45s cubic-bezier(0.22,1,0.36,1),
+                  transform 0.45s cubic-bezier(0.22,1,0.36,1);
+    }
+    .dc-root.mounted { opacity: 1; transform: translateY(0); }
+
+    /* ── Header ──────────────────────────────────────────── */
+    .dc-header {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 20px;
+    }
+    .dc-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 26px; font-weight: 700;
+      color: #09090b; letter-spacing: -0.5px;
+      line-height: 1.1; margin: 0 0 6px;
+    }
+    .dc-subtitle { font-size: 13px; color: #71717a; font-weight: 400; margin: 0; }
+
+    .dc-notice {
+      background: #fffcf0; border: 1px solid #fef3c7; border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 24px; font-size: 13px; color: #92400e;
+      display: flex; align-items: flex-start; gap: 10px; line-height: 1.5;
+    }
+
+    /* ── Toolbar ─────────────────────────────────────────── */
+    .dc-toolbar {
+      display: flex; gap: 10px; margin-bottom: 24px; align-items: center;
+    }
+    .dc-search-wrap {
+      position: relative; flex: 1; max-width: 400px;
+    }
+    .dc-search-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: #a1a1aa; pointer-events: none; display: flex; align-items: center;
+    }
+    .dc-search {
+      width: 100%; height: 38px; padding: 0 12px 0 36px;
+      background: white; border: 1px solid #e4e4e7; border-radius: 9px;
+      font-size: 13.5px; color: #09090b; outline: none;
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      box-sizing: border-box;
+    }
+    .dc-search::placeholder { color: #a1a1aa; }
+    .dc-search:focus { border-color: #09090b; box-shadow: 0 0 0 3px rgba(9,9,11,0.06); }
+
+    /* ── Card ────────────────────────────────────────────── */
+    .dc-card { background: white; border: 1px solid #e4e4e7; border-radius: 14px; overflow: hidden; }
+    .dc-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; border-bottom: 1px solid #f4f4f5; background: #fafafa;
+    }
+    .dc-card-title { font-size: 13px; font-weight: 600; color: #09090b; margin: 0; }
+    .dc-card-count { font-size: 12px; color: #a1a1aa; }
+
+    /* ── Table ───────────────────────────────────────────── */
+    .dc-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    .dc-table thead { background: #fafafa; }
+    .dc-table th {
+      padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 600;
+      color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.6px;
+      border-bottom: 1px solid #f4f4f5; white-space: nowrap;
+    }
+    .dc-table td { padding: 12px 16px; border-bottom: 1px solid #f4f4f5; color: #09090b; vertical-align: middle; }
     .dc-table tr:last-child td { border-bottom: none; }
-    .dc-table tbody tr:hover td { background: #fef9f0; }
-    .dc-mono { font-family: monospace; font-size: 12px; color: #6b7280; }
-    .dc-stamp { font-size: 11px; color: #9ca3af; font-family: monospace; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .dc-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 9999px; font-size: 11px; font-weight: 600; background: #fee2e2; color: #991b1b; }
-    .dc-dot { width: 5px; height: 5px; border-radius: 50%; background: #dc2626; display: inline-block; }
-    .dc-recover-btn { padding: 5px 12px; border-radius: 6px; border: 1px solid #bbf7d0; font-size: 12px; font-weight: 500; cursor: pointer; background: #f0fdf4; color: #166534; }
-    .dc-recover-btn:hover { background: #dcfce7; }
-    .dc-recover-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .dc-empty { text-align: center; padding: 56px 24px; color: #9ca3af; font-size: 13px; }
-    .dc-footer { padding: 10px 14px; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af; }
+    .dc-table tbody tr { transition: background 0.1s ease; }
+    .dc-table tbody tr:hover td { background: #fafafa; }
+
+    .dc-mono { font-family: 'Courier New', monospace; font-size: 12px; color: #71717a; letter-spacing: 0.3px; }
+    .dc-stamp { font-size: 11px; color: #a1a1aa; font-family: 'Courier New', monospace; }
+    
+    .dc-badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px;
+      border-radius: 6px; font-size: 11px; font-weight: 600;
+      background: #fef2f2; color: #991b1b; border: 1px solid #fee2e2;
+    }
+    .dc-dot { width: 5px; height: 5px; border-radius: 50%; background: #ef4444; }
+
+    .dc-recover-btn {
+      height: 30px; padding: 0 14px; border-radius: 7px;
+      border: 1px solid #e4e4e7; font-size: 12px; font-weight: 500;
+      cursor: pointer; background: white; color: #09090b;
+      transition: all 0.15s ease;
+    }
+    .dc-recover-btn:hover { background: #09090b; color: white; border-color: #09090b; }
+    .dc-recover-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #f4f4f5; color: #a1a1aa; }
+
+    .dc-empty { text-align: center; padding: 64px 24px; color: #a1a1aa; font-size: 13.5px; }
+    .dc-footer { padding: 12px 20px; border-top: 1px solid #f4f4f5; font-size: 12px; color: #a1a1aa; }
   `
 
   async function fetchDeleted() {
     setLoading(true)
     setError(null)
     try {
-      // Pass SUPERADMIN so we get all rows including INACTIVE
+      // Pass SUPERADMIN so we get all rows including INACTIVE[cite: 6]
       const all = await getCustomers('SUPERADMIN')
       setCustomers((all || []).filter((c) => c.record_status === 'INACTIVE'))
     } catch {
@@ -79,27 +159,38 @@ export default function DeletedCustomersPage() {
     <>
       {ToastComponent}
       <style>{css}</style>
-      <div className="dc-page">
+      <div className={`dc-root ${mounted ? 'mounted' : ''}`}>
 
-        <div className="dc-topbar">
+        <div className="dc-header">
           <h1 className="dc-title">Deleted Customers</h1>
-          <p className="dc-sub">Soft-deleted records — recoverable by Admin and Superadmin only</p>
+          <p className="dc-subtitle">Review and restore soft-deleted customer records</p>
         </div>
 
-        <div className="dc-warning">
-          These customers have been soft-deleted and are invisible to USER accounts
-          everywhere in the system — including direct API calls blocked by RLS.
-          Recovery restores full visibility.
+        <div className="dc-notice">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>
+            These records are soft-deleted and invisible to standard users. 
+            Recovery restores full visibility and system-wide access.[cite: 6]
+          </span>
         </div>
 
-        <div className="dc-controls">
-          <input
-            className="dc-search"
-            type="text"
-            placeholder="Search by name or customer no."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="dc-toolbar">
+          <div className="dc-search-wrap">
+            <span className="dc-search-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
+            <input
+              className="dc-search"
+              type="text"
+              placeholder="Search by name or customer no."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="dc-card">
@@ -113,11 +204,9 @@ export default function DeletedCustomersPage() {
           </div>
 
           {loading ? (
-            <table className="dc-table">
-              <tbody>
-                <SkeletonTable rows={5} cols={6} />
-              </tbody>
-            </table>
+            <div style={{ padding: '0 20px 20px' }}>
+              <SkeletonTable rows={5} cols={6} />
+            </div>
           ) : error ? (
             <div className="dc-empty" style={{ color: '#dc2626' }}>{error}</div>
           ) : filtered.length === 0 ? (
@@ -154,7 +243,7 @@ export default function DeletedCustomersPage() {
                           disabled={recovering === c.custno}
                           onClick={() => handleRecover(c.custno)}
                         >
-                          {recovering === c.custno ? 'Recovering...' : 'Recover'}
+                          {recovering === c.custno ? 'Restoring...' : 'Recover'}
                         </button>
                       </td>
                     </tr>
@@ -162,12 +251,11 @@ export default function DeletedCustomersPage() {
                 </tbody>
               </table>
               <div className="dc-footer">
-                Showing {filtered.length} of {customers.length} inactive customers
+                Showing {filtered.length} of {customers.length} inactive records[cite: 6]
               </div>
             </>
           )}
         </div>
-
       </div>
     </>
   )
