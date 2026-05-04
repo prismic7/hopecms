@@ -243,7 +243,7 @@ export default function CustomerSalesSummaryPage() {
                 </tbody>
               </table>
               <div className="cs-footer">
-                Showing {filtered.length} of {data.length} customers summarized[cite: 8]
+                Showing {filtered.length} of {data.length} customers summarized
               </div>
             </>
           )}
